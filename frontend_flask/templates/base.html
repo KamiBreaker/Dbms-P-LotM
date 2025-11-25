@@ -5,80 +5,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parking Lot System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        body {
-            display: flex;
-        }
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            width: 240px;
-            padding: 20px;
-            background-color: #212529;
-            color: white;
-            display: flex;
-            flex-direction: column;
-        }
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.75);
-            padding: 10px 15px;
-            border-radius: 0.25rem;
-        }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
-            color: white;
-            background-color: #495057;
-        }
-        .sidebar .navbar-brand {
-            color: white;
-            margin-bottom: 1rem;
-            display: block;
-        }
-        .sidebar-footer {
-            margin-top: auto;
-            padding-top: 1rem;
-            border-top: 1px solid #495057;
-        }
-        .main-content {
-            margin-left: 240px;
-            padding: 20px;
-            width: calc(100% - 240px);
-        }
-    </style>
 </head>
 <body>
     <div class="sidebar">
         <div>
-            <a class="navbar-brand" href="{{ url_for('index') }}">Parking Lot System</a>
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-parking me-2 text-primary"></i> ParkingMan
+            </a>
             {% if g.user %}
-            <ul class="nav flex-column">
+            <ul class="nav flex-column mt-4">
                 {% if g.user.role == 'admin' %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('users_management') }}">Users</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('reports') }}">Reports</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('vip_check_in_page') }}">VIP Check-In</a></li>
-
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                        <i class="fas fa-tachometer-alt w-20"></i> Admin Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('users_management') }}">
+                        <i class="fas fa-users w-20"></i> Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('reports') }}">
+                        <i class="fas fa-chart-pie w-20"></i> Reports
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('vip_check_in_page') }}">
+                        <i class="fas fa-user-tie w-20"></i> VIP Check-In
+                    </a>
+                </li>
                 {% endif %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('check_in_start') }}">Direct Check-In</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('check_out_page') }}">Check-Out</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('reservations_start') }}">Reservations</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('history') }}">My History</a></li>
+                
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('check_in_start') }}">
+                        <i class="fas fa-sign-in-alt w-20"></i> Direct Check-In
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('check_out_page') }}">
+                        <i class="fas fa-sign-out-alt w-20"></i> Check-Out
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('reservations_start') }}">
+                        <i class="fas fa-calendar-check w-20"></i> Reservations
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('history') }}">
+                        <i class="fas fa-history w-20"></i> My History
+                    </a>
+                </li>
             </ul>
             {% endif %}
         </div>
         <div class="sidebar-footer">
             {% if g.user %}
-                <div class="text-white mb-2">
-                    Welcome, <strong>{{ g.user.name }}</strong> ({{ g.user.role }})
+                <div class="text-white-50 mb-3 small">
+                    <i class="fas fa-user-circle me-1"></i> {{ g.user.name }}
+                    <span class="badge bg-secondary ms-1">{{ g.user.role }}</span>
                 </div>
-                <a href="{{ url_for('logout') }}" class="btn btn-danger w-100">Logout</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger w-100 btn-sm">
+                    <i class="fas fa-power-off me-1"></i> Logout
+                </a>
             {% else %}
                 <ul class="nav flex-column">
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Login</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('register') }}">Register</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">
+                            <i class="fas fa-key w-20"></i> Login
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('register') }}">
+                            <i class="fas fa-user-plus w-20"></i> Register
+                        </a>
+                    </li>
                 </ul>
             {% endif %}
         </div>
