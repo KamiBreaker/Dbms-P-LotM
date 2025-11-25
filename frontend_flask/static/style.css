@@ -185,3 +185,38 @@ h2 {
     font-weight: 700;
     color: var(--text-color);
 }
+
+/* Slot Status Colors */
+.status-available {
+    background-color: #28a745 !important; /* Green */
+    color: white !important;
+}
+
+.status-occupied {
+    background-color: #dc3545 !important; /* Red */
+    color: white !important;
+}
+
+.status-reserved {
+    background-color: #ffc107 !important; /* Yellow */
+    color: black !important; /* Black text for better contrast on yellow */
+}
+
+/* Legend Styles */
+.legend {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+}

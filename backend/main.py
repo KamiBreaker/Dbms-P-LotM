@@ -106,8 +106,10 @@ class Reservation(Base):
     expected_check_out_time = Column(DateTime, nullable=True)
     slot_id = Column(Integer, ForeignKey("parking_slots.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=True)
     slot = relationship("ParkingSlot")
     user = relationship("User")
+    vehicle = relationship("Vehicle")
 
 # --- Pydantic Schemas ---
 
@@ -199,6 +201,7 @@ class CheckInRequestSchema(BaseModel):
     license_plate: str
     slot_id: int
     duration_hours: Optional[int] = None
+    user_id: Optional[int] = None
 
 class CheckOutRequestSchema(BaseModel):
     license_plate: str
@@ -239,6 +242,7 @@ class ReservationCreateSchema(BaseModel):
     slot_id: int
     expected_check_in_time: datetime
     expected_check_out_time: datetime
+    license_plate: Optional[str] = None
 
 class ReservationSchema(BaseModel):
     id: int
@@ -248,8 +252,10 @@ class ReservationSchema(BaseModel):
     expected_check_out_time: Optional[datetime] = None
     slot_id: int
     user_id: int
+    vehicle_id: Optional[int] = None
     slot: BaseParkingSlotSchema # Include the slot object
     user: UserSchema # Include the user object
+    vehicle: Optional[VehicleSchema] = None
     class Config: { "from_attributes": True }
 
 class ReportRevenueSchema(BaseModel):
@@ -508,28 +514,72 @@ def update_parking_slot_status(
 # --- Parking Operations ---
 @app.post("/api/check-in", response_model=ParkingSessionSchema, status_code=status.HTTP_201_CREATED)
 def check_in(request: CheckInRequestSchema, db: Session = Depends(get_db)):
-    # 1. Find the specific slot the user wants to check into
+    # 1. Find the specific slot
     slot_to_occupy = db.query(ParkingSlot).filter(ParkingSlot.id == request.slot_id).first()
     if not slot_to_occupy:
         raise HTTPException(status_code=404, detail="Selected slot not found.")
     
-    # 2. Handle slot status checks
-    if slot_to_occupy.status != "available":
-        raise HTTPException(status_code=400, detail=f"Slot {slot_to_occupy.slot_number} is currently {slot_to_occupy.status}. Only 'available' slots can be directly checked into.")
-
-    # 3. Find or create vehicle
+    # 2. Find or create vehicle
     vehicle = db.query(Vehicle).filter(Vehicle.license_plate == request.license_plate).first()
     if not vehicle:
         vehicle = Vehicle(license_plate=request.license_plate)
         db.add(vehicle)
-        db.flush() # Use flush to get the vehicle object ready for the session
+        db.flush() 
     
-    # 4. Determine check-in and expected check-out times (strictly from duration_hours)
-    session_check_in_time = datetime.utcnow() # Always use the current time for check-in
+    # 2b. Link User if provided and vehicle not linked
+    if request.user_id and not vehicle.user_id:
+        # Verify user exists
+        user = db.query(User).filter(User.id == request.user_id).first()
+        if user:
+            vehicle.user_id = user.id
+            db.add(vehicle)
+            db.flush()
+
+    # 3. Handle Slot Status
+    reservation_to_fulfill = None
+
+    if slot_to_occupy.status == "occupied":
+        raise HTTPException(status_code=400, detail=f"Slot {slot_to_occupy.slot_number} is already occupied.")
+    
+    elif slot_to_occupy.status == "reserved":
+        # Check if this vehicle/user is allowed to take this reserved spot
+        active_reservation = db.query(Reservation).filter(
+            Reservation.slot_id == request.slot_id, 
+            Reservation.status == "active"
+        ).first()
+        
+        if not active_reservation:
+            # Should not happen if status is reserved, but safety check
+            slot_to_occupy.status = "available" # Auto-fix status?
+        else:
+            # Check authorization
+            is_authorized = False
+            
+            # Check 1: Does license plate match?
+            if active_reservation.vehicle_id == vehicle.id:
+                is_authorized = True
+            
+            # Check 2: Does user match? (if vehicle is linked to user, or request.user_id matches)
+            if not is_authorized and active_reservation.user_id:
+                if request.user_id and request.user_id == active_reservation.user_id:
+                    is_authorized = True
+                elif vehicle.user_id and vehicle.user_id == active_reservation.user_id:
+                    is_authorized = True
+            
+            if not is_authorized:
+                raise HTTPException(status_code=400, detail=f"Slot {slot_to_occupy.slot_number} is reserved for another user/vehicle.")
+            
+            reservation_to_fulfill = active_reservation
+
+    # 4. Determine times
+    session_check_in_time = datetime.utcnow()
     session_expected_check_out_time = None
     
     if request.duration_hours and request.duration_hours > 0:
         session_expected_check_out_time = datetime.utcnow() + timedelta(hours=request.duration_hours)
+    elif reservation_to_fulfill:
+         # Fallback to reservation time if duration not provided (though schema requires it currently, logic handles it)
+         session_expected_check_out_time = reservation_to_fulfill.expected_check_out_time
     else:
         raise HTTPException(status_code=400, detail="Duration in hours is required for direct check-in.")
 
@@ -546,8 +596,13 @@ def check_in(request: CheckInRequestSchema, db: Session = Depends(get_db)):
         is_vip_session=is_vip_session
     )
 
-    # 6. Update slot status and commit
+    # 6. Update slot status, fulfill reservation if any, and commit
     slot_to_occupy.status = "occupied"
+    
+    if reservation_to_fulfill:
+        reservation_to_fulfill.status = "fulfilled"
+        db.add(reservation_to_fulfill)
+
     db.add(new_session)
     db.commit()
     db.refresh(new_session)
@@ -790,8 +845,23 @@ def create_reservation(res_data: ReservationCreateSchema, db: Session = Depends(
     if slot_to_reserve.status != "available":
         raise HTTPException(status_code=400, detail=f"Slot {slot_to_reserve.slot_number} is currently unavailable for reservation.")
     
+    vehicle_id = None
+    if res_data.license_plate:
+        vehicle = db.query(Vehicle).filter(Vehicle.license_plate == res_data.license_plate).first()
+        if not vehicle:
+            vehicle = Vehicle(license_plate=res_data.license_plate, user_id=user.id)
+            db.add(vehicle)
+            db.flush()
+        vehicle_id = vehicle.id
+
     slot_to_reserve.status = "reserved"
-    new_reservation = Reservation(user_id=user.id, slot_id=slot_to_reserve.id, expected_check_in_time=res_data.expected_check_in_time, expected_check_out_time=res_data.expected_check_out_time)
+    new_reservation = Reservation(
+        user_id=user.id, 
+        slot_id=slot_to_reserve.id, 
+        expected_check_in_time=res_data.expected_check_in_time, 
+        expected_check_out_time=res_data.expected_check_out_time,
+        vehicle_id=vehicle_id
+    )
     db.add(new_reservation)
     db.commit()
     db.refresh(new_reservation)
@@ -799,7 +869,11 @@ def create_reservation(res_data: ReservationCreateSchema, db: Session = Depends(
 
 @app.get("/api/reservations", response_model=List[ReservationSchema])
 def get_reservations(status: Optional[str] = None, db: Session = Depends(get_db)):
-    query = db.query(Reservation).options(joinedload(Reservation.slot).joinedload(ParkingSlot.lot), joinedload(Reservation.user))
+    query = db.query(Reservation).options(
+        joinedload(Reservation.slot).joinedload(ParkingSlot.lot), 
+        joinedload(Reservation.user),
+        joinedload(Reservation.vehicle) # Load vehicle
+    )
     if status:
         query = query.filter(Reservation.status == status)
     return query.all()

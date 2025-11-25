@@ -28,6 +28,7 @@
                                 data-user-id="{{ reservation.user_id }}"
                                 data-slot-number="{{ reservation.slot.slot_number }}"
                                 data-lot-name="{{ reservation.slot.lot.name }}"
+                                data-license-plate="{% if reservation.vehicle %}{{ reservation.vehicle.license_plate }}{% endif %}"
                                 data-check-in="{% if reservation.expected_check_in_time %}{{ reservation.expected_check_in_time }}{% else %}N/A{% endif %}"
                                 data-check-out="{% if reservation.expected_check_out_time %}{{ reservation.expected_check_out_time }}{% else %}N/A{% endif %}">
                             {{ reservation.user.name }} - Slot {{ reservation.slot.slot_number }} ({{ reservation.slot.lot.name }}) - {% if reservation.expected_check_in_time %}{{ reservation.expected_check_in_time.split('.')[0].replace('T', ' ') }}{% else %}N/A{% endif %}
@@ -65,6 +66,7 @@
                 option.setAttribute('data-user-id', "{{ reservation.user_id }}");
                 option.setAttribute('data-slot-number', "{{ reservation.slot.slot_number }}");
                 option.setAttribute('data-lot-name', "{{ reservation.slot.lot.name }}");
+                option.setAttribute('data-license-plate', "{% if reservation.vehicle %}{{ reservation.vehicle.license_plate }}{% endif %}");
                 option.setAttribute('data-check-in', "{% if reservation.expected_check_in_time %}{{ reservation.expected_check_in_time }}{% else %}N/A{% endif %}");
                 option.setAttribute('data-check-out', "{% if reservation.expected_check_out_time %}{{ reservation.expected_check_out_time }}{% else %}N/A{% endif %}");
                 reservationSelect.appendChild(option);
@@ -72,7 +74,30 @@
         {% endfor %}
     }
 
-    // Initial filter on page load
-    document.addEventListener('DOMContentLoaded', filterReservations);
+    function updateLicensePlate() {
+        const reservationSelect = document.getElementById('reservation_id');
+        const licensePlateInput = document.getElementById('license_plate');
+        
+        const selectedOption = reservationSelect.options[reservationSelect.selectedIndex];
+        if (selectedOption) {
+            const lp = selectedOption.getAttribute('data-license-plate');
+            if (lp) {
+                licensePlateInput.value = lp;
+                // Optional: Make it read-only if you want to force them to use the reserved car
+                // licensePlateInput.readOnly = true; 
+            } else {
+                licensePlateInput.value = '';
+                // licensePlateInput.readOnly = false;
+            }
+        }
+    }
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        filterReservations();
+        
+        const reservationSelect = document.getElementById('reservation_id');
+        reservationSelect.addEventListener('change', updateLicensePlate);
+    });
 </script>
 {% endblock %}

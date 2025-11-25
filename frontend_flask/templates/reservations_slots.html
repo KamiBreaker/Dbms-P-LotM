@@ -51,6 +51,21 @@
 
 <form method="POST" action="{{ url_for('reservations_slots', user_id=user_id, lot_id=lot.id) }}" id="reservationForm">
     <div class="mb-3">
+        <label for="vehicle_select" class="form-label">Select Vehicle</label>
+        <select class="form-select" id="vehicle_select" name="license_plate_select" onchange="toggleLicensePlateInput()">
+            <option value="">-- Select a Vehicle --</option>
+            {% for vehicle in user_vehicles %}
+                <option value="{{ vehicle.license_plate }}">{{ vehicle.license_plate }} ({{ vehicle.vehicle_type }})</option>
+            {% endfor %}
+            <option value="other">Other / New Vehicle</option>
+        </select>
+    </div>
+    <div class="mb-3" id="manual_license_plate_div" style="display: none;">
+        <label for="license_plate_manual" class="form-label">Enter License Plate</label>
+        <input type="text" class="form-control" id="license_plate_manual" name="license_plate_manual" placeholder="e.g. ABC-123">
+    </div>
+
+    <div class="mb-3">
         <label for="reservation_date" class="form-label">Reservation Date</label>
         <input type="date" class="form-control" id="reservation_date" name="reservation_date" required>
     </div>
@@ -75,6 +90,18 @@
 </form>
 
 <script>
+function toggleLicensePlateInput() {
+    const select = document.getElementById('vehicle_select');
+    const manualDiv = document.getElementById('manual_license_plate_div');
+    if (select.value === 'other') {
+        manualDiv.style.display = 'block';
+        document.getElementById('license_plate_manual').required = true;
+    } else {
+        manualDiv.style.display = 'none';
+        document.getElementById('license_plate_manual').required = false;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('reservationForm');
     form.addEventListener('submit', function(event) {
@@ -82,6 +109,22 @@ document.addEventListener('DOMContentLoaded', function() {
         event.preventDefault();
 
         const slotId = event.submitter.value; // Get slot_id from the clicked button
+        
+        // Handle License Plate
+        const vehicleSelect = document.getElementById('vehicle_select');
+        const manualInput = document.getElementById('license_plate_manual');
+        let licensePlate = '';
+
+        if (vehicleSelect.value === 'other') {
+            licensePlate = manualInput.value;
+        } else {
+            licensePlate = vehicleSelect.value;
+        }
+
+        if (!licensePlate) {
+            alert('Please select or enter a license plate.');
+            return;
+        }
 
         const reservationDate = document.getElementById('reservation_date').value;
         const checkInTime = document.getElementById('expected_check_in_time').value;
@@ -115,6 +158,12 @@ document.addEventListener('DOMContentLoaded', function() {
         hiddenCheckOut.name = 'expected_check_out_time';
         hiddenCheckOut.value = expectedCheckOut;
         form.appendChild(hiddenCheckOut);
+
+        const hiddenLicensePlate = document.createElement('input');
+        hiddenLicensePlate.type = 'hidden';
+        hiddenLicensePlate.name = 'license_plate';
+        hiddenLicensePlate.value = licensePlate;
+        form.appendChild(hiddenLicensePlate);
 
         // Now submit the form with the combined values
         form.submit();

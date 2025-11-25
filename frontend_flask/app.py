@@ -315,6 +315,10 @@ def check_in_slots(license_plate, lot_id):
         payload = {"license_plate": license_plate, "slot_id": int(slot_id)}
         if duration_hours:
             payload['duration_hours'] = int(duration_hours)
+        
+        # Pass current user ID to link vehicle/fulfill reservation
+        if g.user:
+            payload['user_id'] = g.user['id']
 
         response = requests.post(f"{FASTAPI_BASE_URL}/api/check-in", json=payload, headers=headers)
         
@@ -345,6 +349,10 @@ def check_in_slots(license_plate, lot_id):
 @app.route('/reservations', methods=['GET', 'POST'])
 @login_required
 def reservations_start():
+    # Auto-select user if not admin
+    if g.user and g.user.get('role') != 'admin':
+        return redirect(url_for('reservations_areas', user_id=g.user['id']))
+
     headers = {'Authorization': f'Bearer {session["access_token"]}'}
     if request.method == 'POST':
         user_id = request.form.get('user_id')
@@ -426,11 +434,24 @@ def reservations_lots(user_id, area_name):
 @login_required
 def reservations_slots(user_id, lot_id):
     headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    
+    # Fetch user's vehicles (We fetch all and filter because backend endpoint might not support filtering by user_id yet)
+    # Or even better, let's see if we can get the user details which might include vehicles if we updated the schema, 
+    # but to be safe, let's just fetch all vehicles and filter client-side or server-side here.
+    # A better approach: GET /api/vehicles?user_id=... (not implemented).
+    # Let's just fetch all vehicles for now and filter.
+    vehicles_response = requests.get(f"{FASTAPI_BASE_URL}/api/vehicles", headers=headers)
+    user_vehicles = []
+    if vehicles_response.ok:
+        all_vehicles = vehicles_response.json()
+        user_vehicles = [v for v in all_vehicles if v.get('user_id') == user_id]
+
     if request.method == 'POST':
         slot_id = request.form.get('slot_id')
         reservation_date_str = request.form.get('reservation_date')
         expected_check_in_time_str = request.form.get('expected_check_in_time')
         expected_check_out_time_str = request.form.get('expected_check_out_time')
+        license_plate = request.form.get('license_plate') # Get selected license plate
 
         if not slot_id:
             flash("No slot selected.", "danger")
@@ -447,7 +468,8 @@ def reservations_slots(user_id, lot_id):
             "user_id": user_id,
             "slot_id": int(slot_id),
             "expected_check_in_time": expected_check_in_datetime,
-            "expected_check_out_time": expected_check_out_datetime
+            "expected_check_out_time": expected_check_out_datetime,
+            "license_plate": license_plate # Include license plate
         }
         response = requests.post(f"{FASTAPI_BASE_URL}/api/reservations", json=payload, headers=headers)
         
@@ -464,7 +486,7 @@ def reservations_slots(user_id, lot_id):
         return redirect(url_for('reservations_start'))
     lot = lot_response.json()
     
-    return render_template('reservations_slots.html', lot=lot, user_id=user_id)
+    return render_template('reservations_slots.html', lot=lot, user_id=user_id, user_vehicles=user_vehicles)
 
 
 # --- Management Routes (Users) ---
