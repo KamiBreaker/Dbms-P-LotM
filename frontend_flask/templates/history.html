@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">My Parking History</h1>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>All Sessions</span>
+        {% if g.user and g.user.role == 'admin' %}
+        <button class="btn btn-danger" id="clear-history-btn">Clear All History</button>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Session ID</th>
+                    <th>Vehicle</th>
+                    <th>Slot</th>
+                    <th>Check-In Time</th>
+                    <th>Check-Out Time</th>
+                    <th>VIP Session</th>
+                    <th>Total Fee</th>
+                    {% if g.user and g.user.role == 'admin' %}
+                    <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in sessions %}
+                <tr>
+                    <td>{{ session.id }}</td>
+                    <td>{{ session.vehicle.license_plate if session.vehicle else 'N/A' }} {% if session.vehicle.user %}({{ session.vehicle.user.name }}){% endif %}</td>
+                    <td>{{ session.slot.slot_number if session.slot else 'N/A' }}</td>
+                    <td>{{ session.check_in_time.split('.')[0].replace('T', ' ') if session.check_in_time else 'N/A' }}</td>
+                    <td>{{ session.check_out_time.split('.')[0].replace('T', ' ') if session.check_out_time else 'Still Parked' }}</td>
+                    <td>{{ 'Yes' if session.is_vip_session else 'No' }}</td>
+                    <td>${{ "%.2f"|format(session.total_fee) if session.total_fee is not none else 'N/A' }}</td>
+                    {% if g.user and g.user.role == 'admin' %}
+                    <td>
+                        <button class="btn btn-danger btn-sm delete-btn" data-session-id="{{ session.id }}">Delete</button>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center">You have no parking history.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if g.user and g.user.role == 'admin' %}
+            <tfoot>
+                <tr>
+                    <td colspan="6" class="text-end"><strong>Total Revenue:</strong></td>
+                    <td><strong>${{ "%.2f"|format(total_revenue) }}</strong></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle single session deletion
+    const deleteButtons = document.querySelectorAll('.delete-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const sessionId = this.dataset.sessionId;
+            const confirmDelete = confirm('Are you sure you want to delete this parking session? This action cannot be undone.');
+
+            if (confirmDelete) {
+                fetch(`{{ fastapi_base_url }}/api/sessions/${sessionId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer {{ session['access_token'] }}`
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Session deleted successfully.');
+                        location.reload();
+                    } else {
+                        response.json().then(data => {
+                            alert(`Error deleting session: ${data.detail || 'Unknown error'}`);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting the session.');
+                });
+            }
+        });
+    });
+
+    // Handle clearing all history
+    const clearHistoryButton = document.getElementById('clear-history-btn');
+    if (clearHistoryButton) {
+        clearHistoryButton.addEventListener('click', function() {
+            const confirmClear = confirm('Are you sure you want to permanently delete ALL parking history? This will also reset the total revenue. This action cannot be undone.');
+
+            if (confirmClear) {
+                fetch(`{{ fastapi_base_url }}/api/admin/clear-history`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer {{ session['access_token'] }}`
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('All parking history has been cleared.');
+                        location.reload();
+                    } else {
+                        response.json().then(data => {
+                            alert(`Error clearing history: ${data.detail || 'Unknown error'}`);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while clearing the history.');
+                });
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

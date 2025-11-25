@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('reservations_start') }}">Step 1: Select User</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('reservations_areas', user_id=user_id) }}">Step 2: Select Area</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Step 3: Select Lot</li>
+    </ol>
+</nav>
+
+<h1 class="mb-4">New Reservation in {{ area_name }}</h1>
+<p class="lead">Please select a parking lot.</p>
+
+<div class="list-group">
+    {% for lot in lots %}
+        <a href="{{ url_for('reservations_slots', user_id=user_id, lot_id=lot.id) }}" class="list-group-item list-group-item-action">
+            {{ lot.name }}
+        </a>
+    {% else %}
+        <div class="alert alert-warning" role="alert">
+            No parking lots found in this area.
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,308 @@
+Project Report
+Project Name: “Parking Lot System and Management”
+
+---
+
+Table of Contents
+
+Phase-01
+1. Introduction
+2. System Summary
+3. Functions & Operations
+    - Admin Functionalities
+        - 1. Admin: Dashboard
+        - 2. Admin: Manage Parking Spaces
+        - 3. Admin: Mark Slot for Maintenance/Construction
+        - 4. Admin: View Real-Time Occupancy
+        - 5. Admin: Manage Reservations
+        - 6. Admin: User Management
+        - 7. Admin: Manage Announcements
+        - 8. Admin: Occupancy Analysis
+        - 9. Admin: Revenue Analysis
+        - 10. Admin: User Statistics
+        - 11. Admin: See Patterns/Trends
+        - 12. Admin: Generate Reports
+        - 13. Admin: Configure Loyalty Program
+    - User Functionalities
+        - 14. User: Registration and Login
+        - 15. User: Manage Profile and Vehicles
+        - 16. User: Search and View Parking
+        - 17. User: Make a Reservation
+        - 18. User: View Booking History
+        - 19. User: Loyalty Points Overview
+4. Technologies Used
+5. Proposed Database Schema
+    - Entity Relationship Diagram (Updated)
+    - Narrative Description of ER-Diagram
+
+Phase-02
+6. Proposed Database Schema (Continued)
+    - 6.1. Schema Refinement
+        - Integrity Constraints
+    - 6.2. Normalization
+    - 6.3. SQL Table Creation Statements
+7. Populating the Database
+8. Pattern Identification Queries
+9. Progress Report
+    - Summary
+    - Group Progress Report
+    - Individual Report
+10. Learning Outcomes of the Project
+11. Practical Applications of This Project
+12. Limitations of This Project
+13. Conclusion
+
+---
+
+1. Introduction
+The Parking Lot System and Management is a project designed to streamline and modernize the process of vehicle parking. The primary goal is to create an efficient system that handles various parking requests, including advance reservations and on-the-spot check-ins. By digitizing these operations, the project aims to reduce manual overhead, optimize space utilization, and provide a seamless and convenient experience for both drivers and parking administrators. This system addresses common urban challenges such as traffic congestion caused by drivers searching for parking and inefficient use of available parking real estate.
+
+2. System Summary
+This project is a web-based application that allows users to find, reserve, and pay for parking spaces. It features a user-friendly frontend for drivers and a comprehensive dashboard for administrators to manage the parking facility. The system supports different types of users and parking methods, including pre-booked VIP reservations and standard drive-in entries. A key feature is the implementation of a loyalty program, which rewards frequent users with discounts, encouraging customer retention. The architecture is centered around a Python/Flask backend and a MySQL database, ensuring robust performance and data integrity.
+
+3. Functions & Operations
+
+The system is designed with a clear separation of functionalities for administrators and end-users.
+
+Admin Functionalities
+
+- 1. Admin: Dashboard
+  Description: A secure, centralized interface for administrators to oversee the entire parking system. The dashboard provides a real-time, at-a-glance view of key metrics.
+
+- 2. Admin: Manage Parking Spaces
+  Description: Admins can add, remove, or update the status of parking spaces. This includes marking spaces as 'under maintenance', 'reserved', or 'available', and designating specific spots as 'VIP'.
+
+- 3. Admin: Mark Slot for Maintenance/Construction
+  Description: Admins can temporarily remove a parking slot from availability, marking it as 'under maintenance' or 'construction' to prevent reservations or check-ins.
+
+- 4. Admin: View Real-Time Occupancy
+  Description: A visual map or list view showing the current status of all parking spaces in real-time, allowing admins to quickly identify available spots and monitor traffic flow.
+
+- 5. Admin: Manage Reservations
+  Description: Admins can view all active and upcoming reservations, manually book a spot for a customer if needed, and handle any cancellations or modifications.
+
+- 6. Admin: User Management
+  Description: Admins have the ability to view a list of all registered users, manage their details, and adjust loyalty points manually in case of discrepancies.
+
+- 7. Admin: Manage Announcements
+  Description: Admins can add, edit, or delete system-wide announcements (e.g., 'Lot B closed for maintenance', 'New holiday rates in effect') that are visible to users.
+
+- 8. Admin: Occupancy Analysis
+  Description: Admins can visualize the average occupancy of the parking lot over time (e.g., by hour, by day of the week) to understand peak periods.
+
+- 9. Admin: Revenue Analysis
+  Description: Admins can view detailed performance metrics for revenue, including total income per day/week/month and revenue generated per parking zone.
+
+- 10. Admin: User Statistics
+  Description: Admins can generate statistics on user activity, such as the number of new registrations, top users by loyalty points, and reservation frequency.
+
+- 11. Admin: See Patterns/Trends
+  Description: Admins can identify trends based on historical data, such as the most frequently reserved spots or the most popular times for direct check-ins.
+
+- 12. Admin: Generate Reports
+  Description: The system allows admins to generate and export comprehensive financial and operational reports to inform business decisions.
+
+- 13. Admin: Configure Loyalty Program
+  Description: Admins can set the rules for the loyalty program, such as the number of points awarded per visit and the value of points for discounts.
+
+User Functionalities
+
+- 14. User: Registration and Login
+  Description: New users can create an account by providing basic information. Existing users can log in securely to access their profile and system functionalities.
+
+- 15. User: Manage Profile and Vehicles
+  Description: After logging in, users can update their personal information and manage a list of their vehicles, including adding or removing license plate numbers.
+
+- 16. User: Search and View Parking
+  Description: Users can search for available parking spaces based on date and time. The system displays a list or map of available spots, including standard and VIP options.
+
+- 17. User: Make a Reservation
+  Description: Users can select an available parking spot and book it for a specific duration. The system confirms the reservation and updates the status of the parking space.
+
+- 18. User: View Booking History
+  Description: Users can view a history of their past and upcoming reservations, providing a clear record of their parking activities and expenses.
+
+- 19. User: Loyalty Points Overview
+  Description: Users can check their current loyalty point balance and see a history of points earned and redeemed.
+
+4. Technologies Used
+The project is built using the following technologies:
+- Backend: Python with the Flask framework. Flask is used to build the web server, handle business logic, and create API endpoints that the frontend consumes.
+- Database: MySQL. A relational database used to store all persistent data, including user information, parking space status, reservations, and loyalty points.
+- Frontend: HTML and CSS. These are used to create the structure and style of the user-facing web pages, including the reservation portal and the admin dashboard.
+
+5. Proposed Database Schema
+
+To support the required functionalities, a relational database schema is proposed.
+
+Narrative Description of ER-Diagram
+
+- Users: This entity stores information about the drivers. It includes a `user_id` (Primary Key), name, contact information, and `loyalty_points`. Each user can own multiple vehicles.
+- Vehicles: Stores details of a user's vehicle. It includes a `vehicle_id` (Primary Key), `user_id` (Foreign Key referencing Users), and the `license_plate`. This represents a One-to-Many relationship, as one user can have many vehicles.
+- ParkingSpaces: Represents the individual parking spots. It has a `space_id` (Primary Key), a `space_number`, a `status`, and an `is_vip` flag.
+- Reservations: Manages pre-booked requests. It contains a `reservation_id` (Primary Key), `user_id` and `space_id` (Foreign Keys). This creates a many-to-many relationship between users and parking spaces, mediated by the reservation details.
+- CheckIns: Records all parking instances. It includes a `checkin_id` (Primary Key), `vehicle_id` and `space_id` (Foreign Keys), `entry_time`, `exit_time`, and `fee`. It can optionally link to a `reservation_id` if the check-in is for a pre-booked spot.
+- Admins: A table for administrator credentials, containing `admin_id` (Primary Key), `username`, and a `password_hash`. This is kept separate from the main `Users` table for security.
+
+Entity-Relationship Diagram
+
+
+
+
+
+
+
+[--- INSERT ENTITY-RELATIONSHIP DIAGRAM HERE ---]
+
+
+
+
+
+
+
+Relational Schema Diagram
+
+
+
+
+
+
+
+[--- INSERT RELATIONAL SCHEMA DIAGRAM HERE ---]
+
+
+
+
+
+
+
+Normalization
+
+The proposed database schema is designed to be in the 3rd Normal Form (3NF) to reduce data redundancy and improve data integrity.
+
+1. Users Table:
+   - 1NF: ☑ All fields contain atomic values.
+   - 2NF: ☑ The primary key is `user_id`. All non-key attributes (`name`, `email`, `phone_number`, `loyalty_points`) are fully dependent on it.
+   - 3NF: ☑ No transitive dependencies exist. For example, `loyalty_points` is determined only by `user_id`, not by any other non-key attribute.
+
+2. Vehicles Table:
+   - 1NF: ☑ All fields contain atomic values.
+   - 2NF: ☑ The primary key is `vehicle_id`. All non-key attributes (`user_id`, `license_plate`) are fully dependent on it.
+   - 3NF: ☑ No transitive dependencies exist.
+
+3. ParkingSpaces Table:
+   - 1NF: ☑ All fields contain atomic values.
+   - 2NF: ☑ The primary key is `space_id`. All non-key attributes are fully dependent on it.
+   - 3NF: ☑ No transitive dependencies exist.
+
+4. Reservations Table:
+   - 1NF: ☑ All fields contain atomic values.
+   - 2NF: ☑ The primary key is `reservation_id`. All non-key attributes are fully dependent on it.
+   - 3NF: ☑ No transitive dependencies exist.
+
+5. CheckIns Table:
+   - 1NF: ☑ All fields contain atomic values.
+   - 2NF: ☑ The primary key is `checkin_id`. All non-key attributes are fully dependent on it.
+   - 3NF: ☑ No transitive dependencies exist. The `fee` would be calculated and stored upon checkout, not dependent on other non-key attributes in the table.
+
+6. Admins Table:
+   - 1NF: ☑ All fields contain atomic values.
+   - 2NF: ☑ The primary key is `admin_id`. All non-key attributes are fully dependent on it.
+   - 3NF: ☑ No transitive dependencies exist.
+
+SQL Table Creation Statements
+
+```sql
+-- Create Users Table
+CREATE TABLE Users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    phone_number VARCHAR(20),
+    loyalty_points INT DEFAULT 0
+);
+
+-- Create Vehicles Table
+CREATE TABLE Vehicles (
+    vehicle_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    license_plate VARCHAR(20) UNIQUE NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
+
+-- Create ParkingSpaces Table
+CREATE TABLE ParkingSpaces (
+    space_id INT AUTO_INCREMENT PRIMARY KEY,
+    space_number VARCHAR(10) UNIQUE NOT NULL,
+    status ENUM('available', 'occupied', 'reserved', 'maintenance') NOT NULL,
+    is_vip BOOLEAN DEFAULT FALSE
+);
+
+-- Create Reservations Table
+CREATE TABLE Reservations (
+    reservation_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    space_id INT NOT NULL,
+    start_time DATETIME NOT NULL,
+    end_time DATETIME NOT NULL,
+    status ENUM('active', 'completed', 'cancelled') NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id),
+    FOREIGN KEY (space_id) REFERENCES ParkingSpaces(space_id)
+);
+
+-- Create CheckIns Table
+CREATE TABLE CheckIns (
+    checkin_id INT AUTO_INCREMENT PRIMARY KEY,
+    vehicle_id INT NOT NULL,
+    space_id INT NOT NULL,
+    reservation_id INT NULL, -- Link to reservation if it exists
+    entry_time DATETIME NOT NULL,
+    exit_time DATETIME,
+    fee DECIMAL(10, 2),
+    FOREIGN KEY (vehicle_id) REFERENCES Vehicles(vehicle_id),
+    FOREIGN KEY (space_id) REFERENCES ParkingSpaces(space_id),
+    FOREIGN KEY (reservation_id) REFERENCES Reservations(reservation_id)
+);
+
+-- Create Admins Table
+CREATE TABLE Admins (
+    admin_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL
+);
+```
+
+7. Populating the Database
+(This section will describe how the database is populated with initial data. It might include sample data or a description of the data insertion process.)
+
+8. Pattern Identification Queries
+(This section will outline various SQL queries used to identify patterns and trends within the parking lot data, such as peak usage times, popular parking spots, or loyalty program effectiveness.)
+
+9. Progress Report
+
+Summary
+(Please fill in a summary of your project's progress here. Mention key milestones achieved in Phase-01 and Phase-02, such as finalizing the project scope, designing the ER diagram, developing the database schema, and completing the normalization process.)
+
+Group Progress Report
+(Please fill in the progress for each group member here. Create a table or list detailing the date, hours spent, and activities performed by each person, similar to the reference report.)
+
+Individual Report
+(Please provide a more detailed report for each individual member here, outlining their specific contributions, tasks completed, and skills learned during the project.)
+
+10. Learning Outcomes of the Project
+(This section will detail the technologies and skills acquired during the project, such as proficiency in Python/Flask, MySQL database design, SQL querying, HTML/CSS for frontend development, and understanding of database normalization principles.)
+
+11. Practical Applications of This Project
+- Commercial Parking Lots: Shopping malls, airports, and stadiums can use this system to manage high traffic volumes and offer premium reservation services.
+- Corporate Offices: Companies can manage their employee parking lots, assigning spaces and tracking usage.
+- Residential Buildings: Apartment complexes can use the system to manage parking for residents and guests, preventing unauthorized parking.
+- Smart City Initiatives: This system can be integrated into a larger smart city platform, providing real-time parking availability data to citizens through a city-wide app.
+
+12. Limitations of This Project
+- Hardware Integration: The current software-only system does not integrate with physical hardware like boom gates, ticket machines, or occupancy sensors. Such an integration would be necessary for full automation.
+- Payment Gateway: The project scope does not include a real-time payment gateway integration. Payments are logged, but actual financial transactions would require a third-party service (e.g., Stripe, PayPal).
+- Scalability: While designed to be robust, the system would require performance tuning, database indexing, and potentially load balancing to handle the traffic of a very large, multi-level parking facility with thousands of spaces.
+- User Experience: The frontend is described as functional. A production-grade system would require significant investment in UI/UX design and development to be competitive and user-friendly on all devices (mobile responsiveness).
+
+13. Conclusion
+The Parking Lot System and Management project successfully outlines a modern, comprehensive solution to common parking challenges. By integrating a user-friendly reservation system, a rewarding loyalty program, and a powerful administrative dashboard, the system is designed to be both efficient and scalable. The choice of a Python/Flask backend and a normalized MySQL database provides a robust and flexible foundation. While there are limitations regarding hardware and payment integration, the project serves as a strong proof-of-concept and a solid base for a production-ready application.

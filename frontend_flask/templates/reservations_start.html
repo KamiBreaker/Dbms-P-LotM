@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Make a Reservation: Step 1</h1>
+<p class="lead">Please select the user for whom you are making a reservation.</p>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('reservations_start') }}">
+            <div class="mb-3">
+                <label for="user_id" class="form-label">Select User</label>
+                <select class="form-select" id="user_id" name="user_id" required>
+                    <option value="" disabled selected>-- Choose a User --</option>
+                    {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Next: Select Area</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

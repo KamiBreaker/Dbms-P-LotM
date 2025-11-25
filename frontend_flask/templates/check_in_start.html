@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Direct Check-In: Step 1</h1>
+<p class="lead">Select an existing vehicle or enter a new license plate.</p>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('check_in_start') }}">
+            <div class="mb-3">
+                <label for="selected_license_plate" class="form-label">Select Existing Vehicle</label>
+                <select class="form-select" id="selected_license_plate" name="selected_license_plate" onchange="handleVehicleSelection()">
+                    <option value="">-- Select a Vehicle --</option>
+                    {% for vehicle in vehicles %}
+                        <option value="{{ vehicle.license_plate }}">{{ vehicle.license_plate }} ({{ vehicle.vehicle_type }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="typed_license_plate" class="form-label">Or Enter New License Plate</label>
+                <input type="text" class="form-control" id="typed_license_plate" name="typed_license_plate" oninput="handleTypedInput()">
+            </div>
+            <div class="mb-3">
+                <label for="vehicle_type" class="form-label">Vehicle Type</label>
+                <select class="form-select" id="vehicle_type" name="vehicle_type" disabled>
+                    <option value="Car">Car</option>
+                    <option value="Motorcycle">Motorcycle</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Sedan">Sedan</option>
+                    <option value="Hatchback">Hatchback</option>
+                    <option value="Pickup">Pickup</option>
+                    <option value="Bus">Bus</option>
+                    <option value="Truck">Truck</option>
+                    <option value="Microbus">Microbus</option>
+                    <option value="CNG Auto-rickshaw">CNG Auto-rickshaw</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Next: Select Area</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function handleVehicleSelection() {
+        var select = document.getElementById('selected_license_plate');
+        var input = document.getElementById('typed_license_plate');
+        var vehicleTypeSelect = document.getElementById('vehicle_type');
+
+        if (select.value) {
+            input.value = '';
+            input.disabled = true;
+            vehicleTypeSelect.disabled = true;
+        } else {
+            input.disabled = false;
+            // Only enable vehicle type if a new license plate is being typed
+            vehicleTypeSelect.disabled = !input.value; 
+        }
+    }
+
+    function handleTypedInput() {
+        var select = document.getElementById('selected_license_plate');
+        var input = document.getElementById('typed_license_plate');
+        var vehicleTypeSelect = document.getElementById('vehicle_type');
+
+        if (input.value) {
+            select.value = '';
+            vehicleTypeSelect.disabled = false;
+        } else {
+            vehicleTypeSelect.disabled = true;
+        }
+    }
+
+    // Initial state on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        handleVehicleSelection(); 
+    });
+</script>
+{% endblock %}

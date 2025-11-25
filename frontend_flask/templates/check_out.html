@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Check-Out Vehicle</h1>
+<p class="lead">Select your parked vehicle to check out, or enter a license plate manually.</p>
+
+{% if vehicles %}
+<div class="card mb-4">
+    <div class="card-header">
+        Your Parked Vehicles
+    </div>
+    <div class="card-body">
+        <ul class="list-group">
+            {% for vehicle in vehicles %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ vehicle.license_plate }} ({{ vehicle.vehicle_type }})
+                {% if vehicle.user_name %}
+                    - {{ vehicle.user_name }}
+                    {% if vehicle.user_discount_percentage and vehicle.user_discount_percentage > 0 %}
+                        <span class="badge bg-warning text-dark ms-2">VIP</span>
+                    {% endif %}
+                {% endif %}
+                <form method="POST" action="{{ url_for('check_out_page') }}" style="display:inline;">
+                    <input type="hidden" name="selected_license_plate" value="{{ vehicle.license_plate }}">
+                    <button type="submit" class="btn btn-sm btn-danger">Check Out</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info" role="alert">
+    No parked vehicles found for your account.
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Manual Check-Out (for other vehicles or admin)</h5>
+        <form method="POST" action="{{ url_for('check_out_page') }}">
+            <div class="mb-3">
+                <label for="typed_license_plate" class="form-label">Enter License Plate</label>
+                <input type="text" class="form-control" id="typed_license_plate" name="typed_license_plate">
+            </div>
+            <button type="submit" class="btn btn-primary">Check-Out</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

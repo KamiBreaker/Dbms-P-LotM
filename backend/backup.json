@@ -1,0 +1,581 @@
+{
+    "users": [
+        {
+            "id": 2,
+            "name": "evan",
+            "hashed_password": "$2b$12$zI4mj4IkuvgKjjPebcRPceqfIQzuRLKyPSIqbxN/oEADtCxD3hoN.",
+            "role": "user",
+            "discount_percentage": 0.0,
+            "loyalty_tier": 0
+        },
+        {
+            "id": 3,
+            "name": "osman",
+            "hashed_password": "$2b$12$5LMtkygm6Vto3hn3yXAI3eoj/7WZdyzxWiP6aJL/WMj2PLCmXeM2a",
+            "role": "user",
+            "discount_percentage": 0.0,
+            "loyalty_tier": 0
+        },
+        {
+            "id": 4,
+            "name": "mahim",
+            "hashed_password": "$2b$12$P45tJqlbbjfSGooYXsdQuOUZZJKCg73Q2TP1yEzCdBtKBoiKWY32u",
+            "role": "user",
+            "discount_percentage": 0.0,
+            "loyalty_tier": 0
+        },
+        {
+            "id": 5,
+            "name": "muntasir",
+            "hashed_password": "$2b$12$JuzF/ROGBdQIA0rgGGLUfO6ClMKTk6EZnzjuC6ojRxOXiDQNlY4yG",
+            "role": "user",
+            "discount_percentage": 0.0,
+            "loyalty_tier": 0
+        },
+        {
+            "id": 6,
+            "name": "imdad",
+            "hashed_password": "$2b$12$ZChPW43ajpj55GSuJRRaQ.orq1eXsiTjZ9uKljQ6UlQzJyHFoTTlS",
+            "role": "user",
+            "discount_percentage": 0.0,
+            "loyalty_tier": 0
+        }
+    ],
+    "vehicles": [
+        {
+            "id": 1,
+            "license_plate": "DHK-11-1111",
+            "vehicle_type": "Toyota",
+            "user_id": 2
+        },
+        {
+            "id": 2,
+            "license_plate": "DHK-12-2222",
+            "vehicle_type": "Honda",
+            "user_id": 3
+        },
+        {
+            "id": 3,
+            "license_plate": "DHK-13-3333",
+            "vehicle_type": "Mitsubishi",
+            "user_id": 4
+        },
+        {
+            "id": 4,
+            "license_plate": "DHK-14-4444",
+            "vehicle_type": "Nissan",
+            "user_id": 5
+        },
+        {
+            "id": 5,
+            "license_plate": "DHK-15-5555",
+            "vehicle_type": "Suzuki",
+            "user_id": 6
+        }
+    ],
+    "parking_lots": [
+        {
+            "id": 1,
+            "name": "Uttara Parking Lot",
+            "area": "Uttara",
+            "hourly_rate": 2.5
+        },
+        {
+            "id": 2,
+            "name": "Gulshan Parking Lot",
+            "area": "Gulshan",
+            "hourly_rate": 2.5
+        },
+        {
+            "id": 3,
+            "name": "Mirpur Parking Lot",
+            "area": "Mirpur",
+            "hourly_rate": 2.5
+        },
+        {
+            "id": 4,
+            "name": "Dhanmondi Parking Lot",
+            "area": "Dhanmondi",
+            "hourly_rate": 2.5
+        },
+        {
+            "id": 5,
+            "name": "Banani Parking Lot",
+            "area": "Banani",
+            "hourly_rate": 2.5
+        },
+        {
+            "id": 6,
+            "name": "Mohammadpur Parking Lot",
+            "area": "Mohammadpur",
+            "hourly_rate": 2.5
+        }
+    ],
+    "parking_slots": [
+        {
+            "id": 1,
+            "slot_number": "A1",
+            "slot_type": "regular",
+            "lot_id": 1,
+            "status": "reserved"
+        },
+        {
+            "id": 2,
+            "slot_number": "A2",
+            "slot_type": "regular",
+            "lot_id": 1,
+            "status": "available"
+        },
+        {
+            "id": 3,
+            "slot_number": "A3",
+            "slot_type": "regular",
+            "lot_id": 1,
+            "status": "available"
+        },
+        {
+            "id": 4,
+            "slot_number": "A4",
+            "slot_type": "regular",
+            "lot_id": 1,
+            "status": "available"
+        },
+        {
+            "id": 5,
+            "slot_number": "A5",
+            "slot_type": "regular",
+            "lot_id": 1,
+            "status": "available"
+        },
+        {
+            "id": 6,
+            "slot_number": "A6",
+            "slot_type": "regular",
+            "lot_id": 1,
+            "status": "available"
+        },
+        {
+            "id": 7,
+            "slot_number": "A7",
+            "slot_type": "regular",
+            "lot_id": 1,
+            "status": "available"
+        },
+        {
+            "id": 8,
+            "slot_number": "A8",
+            "slot_type": "regular",
+            "lot_id": 1,
+            "status": "available"
+        },
+        {
+            "id": 9,
+            "slot_number": "A1",
+            "slot_type": "regular",
+            "lot_id": 2,
+            "status": "available"
+        },
+        {
+            "id": 10,
+            "slot_number": "A2",
+            "slot_type": "regular",
+            "lot_id": 2,
+            "status": "available"
+        },
+        {
+            "id": 11,
+            "slot_number": "A3",
+            "slot_type": "regular",
+            "lot_id": 2,
+            "status": "available"
+        },
+        {
+            "id": 12,
+            "slot_number": "A4",
+            "slot_type": "regular",
+            "lot_id": 2,
+            "status": "available"
+        },
+        {
+            "id": 13,
+            "slot_number": "A5",
+            "slot_type": "regular",
+            "lot_id": 2,
+            "status": "available"
+        },
+        {
+            "id": 14,
+            "slot_number": "A6",
+            "slot_type": "regular",
+            "lot_id": 2,
+            "status": "available"
+        },
+        {
+            "id": 15,
+            "slot_number": "A1",
+            "slot_type": "regular",
+            "lot_id": 3,
+            "status": "reserved"
+        },
+        {
+            "id": 16,
+            "slot_number": "A2",
+            "slot_type": "regular",
+            "lot_id": 3,
+            "status": "available"
+        },
+        {
+            "id": 17,
+            "slot_number": "A3",
+            "slot_type": "regular",
+            "lot_id": 3,
+            "status": "available"
+        },
+        {
+            "id": 18,
+            "slot_number": "A4",
+            "slot_type": "regular",
+            "lot_id": 3,
+            "status": "available"
+        },
+        {
+            "id": 19,
+            "slot_number": "A5",
+            "slot_type": "handicapped",
+            "lot_id": 3,
+            "status": "available"
+        },
+        {
+            "id": 20,
+            "slot_number": "A6",
+            "slot_type": "ev_charging",
+            "lot_id": 3,
+            "status": "available"
+        },
+        {
+            "id": 21,
+            "slot_number": "A7",
+            "slot_type": "regular",
+            "lot_id": 3,
+            "status": "available"
+        },
+        {
+            "id": 22,
+            "slot_number": "A7",
+            "slot_type": "regular",
+            "lot_id": 2,
+            "status": "available"
+        },
+        {
+            "id": 23,
+            "slot_number": "A8",
+            "slot_type": "regular",
+            "lot_id": 2,
+            "status": "available"
+        },
+        {
+            "id": 24,
+            "slot_number": "A9",
+            "slot_type": "regular",
+            "lot_id": 2,
+            "status": "available"
+        },
+        {
+            "id": 25,
+            "slot_number": "A10",
+            "slot_type": "regular",
+            "lot_id": 2,
+            "status": "available"
+        },
+        {
+            "id": 26,
+            "slot_number": "A8",
+            "slot_type": "regular",
+            "lot_id": 3,
+            "status": "available"
+        },
+        {
+            "id": 27,
+            "slot_number": "A9",
+            "slot_type": "ev_charging",
+            "lot_id": 3,
+            "status": "available"
+        },
+        {
+            "id": 28,
+            "slot_number": "A10",
+            "slot_type": "regular",
+            "lot_id": 3,
+            "status": "available"
+        },
+        {
+            "id": 29,
+            "slot_number": "A1",
+            "slot_type": "regular",
+            "lot_id": 4,
+            "status": "available"
+        },
+        {
+            "id": 30,
+            "slot_number": "A2",
+            "slot_type": "regular",
+            "lot_id": 4,
+            "status": "available"
+        },
+        {
+            "id": 31,
+            "slot_number": "A3",
+            "slot_type": "regular",
+            "lot_id": 4,
+            "status": "available"
+        },
+        {
+            "id": 32,
+            "slot_number": "A4",
+            "slot_type": "regular",
+            "lot_id": 4,
+            "status": "available"
+        },
+        {
+            "id": 33,
+            "slot_number": "A5",
+            "slot_type": "regular",
+            "lot_id": 4,
+            "status": "available"
+        },
+        {
+            "id": 34,
+            "slot_number": "A6",
+            "slot_type": "regular",
+            "lot_id": 4,
+            "status": "available"
+        },
+        {
+            "id": 35,
+            "slot_number": "A7",
+            "slot_type": "regular",
+            "lot_id": 4,
+            "status": "available"
+        },
+        {
+            "id": 36,
+            "slot_number": "A8",
+            "slot_type": "regular",
+            "lot_id": 4,
+            "status": "available"
+        },
+        {
+            "id": 37,
+            "slot_number": "A9",
+            "slot_type": "regular",
+            "lot_id": 4,
+            "status": "available"
+        },
+        {
+            "id": 38,
+            "slot_number": "A10",
+            "slot_type": "regular",
+            "lot_id": 4,
+            "status": "available"
+        },
+        {
+            "id": 39,
+            "slot_number": "A1",
+            "slot_type": "regular",
+            "lot_id": 5,
+            "status": "occupied"
+        },
+        {
+            "id": 40,
+            "slot_number": "A2",
+            "slot_type": "regular",
+            "lot_id": 5,
+            "status": "occupied"
+        },
+        {
+            "id": 41,
+            "slot_number": "A3",
+            "slot_type": "regular",
+            "lot_id": 5,
+            "status": "reserved"
+        },
+        {
+            "id": 42,
+            "slot_number": "A4",
+            "slot_type": "regular",
+            "lot_id": 5,
+            "status": "reserved"
+        },
+        {
+            "id": 43,
+            "slot_number": "A5",
+            "slot_type": "regular",
+            "lot_id": 5,
+            "status": "available"
+        },
+        {
+            "id": 44,
+            "slot_number": "A6",
+            "slot_type": "handicapped",
+            "lot_id": 5,
+            "status": "available"
+        },
+        {
+            "id": 45,
+            "slot_number": "A1",
+            "slot_type": "regular",
+            "lot_id": 6,
+            "status": "available"
+        },
+        {
+            "id": 46,
+            "slot_number": "A2",
+            "slot_type": "regular",
+            "lot_id": 6,
+            "status": "available"
+        },
+        {
+            "id": 47,
+            "slot_number": "A3",
+            "slot_type": "handicapped",
+            "lot_id": 6,
+            "status": "available"
+        },
+        {
+            "id": 48,
+            "slot_number": "A4",
+            "slot_type": "regular",
+            "lot_id": 6,
+            "status": "available"
+        },
+        {
+            "id": 49,
+            "slot_number": "A5",
+            "slot_type": "regular",
+            "lot_id": 6,
+            "status": "available"
+        },
+        {
+            "id": 50,
+            "slot_number": "A6",
+            "slot_type": "regular",
+            "lot_id": 6,
+            "status": "available"
+        },
+        {
+            "id": 51,
+            "slot_number": "A7",
+            "slot_type": "regular",
+            "lot_id": 6,
+            "status": "available"
+        },
+        {
+            "id": 52,
+            "slot_number": "A8",
+            "slot_type": "regular",
+            "lot_id": 6,
+            "status": "available"
+        },
+        {
+            "id": 53,
+            "slot_number": "A9",
+            "slot_type": "regular",
+            "lot_id": 6,
+            "status": "available"
+        },
+        {
+            "id": 54,
+            "slot_number": "A10",
+            "slot_type": "regular",
+            "lot_id": 6,
+            "status": "available"
+        }
+    ],
+    "parking_sessions": [
+        {
+            "id": 1,
+            "check_in_time": "2025-11-09T18:15:04",
+            "expected_check_out_time": "2025-11-09T19:15:04",
+            "check_out_time": "2025-11-09T18:15:29",
+            "total_fee": 2.5,
+            "vehicle_id": 1,
+            "slot_id": 29
+        },
+        {
+            "id": 2,
+            "check_in_time": "2025-11-09T18:24:21",
+            "expected_check_out_time": "2025-11-09T20:24:21",
+            "check_out_time": "2025-11-09T18:24:46",
+            "total_fee": 2.5,
+            "vehicle_id": 1,
+            "slot_id": 45
+        },
+        {
+            "id": 3,
+            "check_in_time": "2025-11-10T11:52:02",
+            "expected_check_out_time": "2025-11-10T16:52:02",
+            "check_out_time": "2025-11-10T11:52:16",
+            "total_fee": 2.5,
+            "vehicle_id": 5,
+            "slot_id": 39
+        },
+        {
+            "id": 4,
+            "check_in_time": "2025-11-10T12:05:43",
+            "expected_check_out_time": "2025-11-10T16:05:43",
+            "check_out_time": "2025-11-10T12:05:47",
+            "total_fee": 10.0,
+            "vehicle_id": 5,
+            "slot_id": 39
+        },
+        {
+            "id": 5,
+            "check_in_time": "2025-11-11T06:30:33",
+            "expected_check_out_time": "2025-11-11T07:30:33",
+            "check_out_time": null,
+            "total_fee": null,
+            "vehicle_id": 3,
+            "slot_id": 39
+        },
+        {
+            "id": 6,
+            "check_in_time": "2025-11-11T06:30:56",
+            "expected_check_out_time": "2025-11-11T10:30:56",
+            "check_out_time": null,
+            "total_fee": null,
+            "vehicle_id": 2,
+            "slot_id": 40
+        }
+    ],
+    "reservations": [
+        {
+            "id": 1,
+            "reservation_time": "2025-11-09T18:25:26",
+            "status": "active",
+            "slot_id": 1,
+            "user_id": 2
+        },
+        {
+            "id": 2,
+            "reservation_time": "2025-11-11T06:27:40",
+            "status": "active",
+            "slot_id": 15,
+            "user_id": 2
+        },
+        {
+            "id": 3,
+            "reservation_time": "2025-11-11T06:31:11",
+            "status": "active",
+            "slot_id": 41,
+            "user_id": 2
+        },
+        {
+            "id": 4,
+            "reservation_time": "2025-11-11T06:32:00",
+            "status": "active",
+            "slot_id": 42,
+            "user_id": 2
+        }
+    ],
+    "penalties": []
+}

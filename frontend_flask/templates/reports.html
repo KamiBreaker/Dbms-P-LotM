@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Admin Reports</h1>
+
+<!-- Peak Hours Analysis -->
+<div class="card mb-4">
+    <div class="card-header">
+        Peak Hour Analysis
+    </div>
+    <div class="card-body">
+        <p>This report shows the busiest hours of the day based on the number of check-ins.</p>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Hour of Day</th>
+                    <th>Number of Check-ins</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in peak_hours %}
+                <tr>
+                    <td>{{ item.hour }}:00 - {{ item.hour }}:59</td>
+                    <td>{{ item.check_ins }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2" class="text-center">No check-in data available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Most Popular Spots -->
+<div class="card mb-4">
+    <div class="card-header">
+        Most Popular Parking Spots
+    </div>
+    <div class="card-body">
+        <p>This report identifies the most frequently used parking spots.</p>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Parking Lot</th>
+                    <th>Spot Number</th>
+                    <th>Usage Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in popular_spots %}
+                <tr>
+                    <td>{{ item.lot_name }}</td>
+                    <td>{{ item.spot_name }}</td>
+                    <td>{{ item.usage_count }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-center">No parking data available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Top Loyalty Members -->
+<div class="card">
+    <div class="card-header">
+        Top 10 Loyalty Members
+    </div>
+    <div class="card-body">
+        <p>This report lists the top users based on their total number of parking sessions.</p>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>User Name</th>
+                    <th>Total Parking Sessions</th>
+                    <th>Discount %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in top_users %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.total_activities }}</td>
+                    <td>{{ "%.1f"|format(item.discount_percentage) }}%</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-center">No user data available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

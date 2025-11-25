@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Admin Dashboard</h1>
+
+<style>
+    .accordion {
+        --bs-accordion-bg: #343a40;
+        --bs-accordion-color: white;
+        --bs-accordion-border-color: #495057;
+        --bs-accordion-button-active-bg: #495057;
+        --bs-accordion-button-active-color: white;
+    }
+    .accordion-button:focus {
+        box-shadow: none;
+    }
+    .accordion-button:not(.collapsed) {
+        color: white;
+        background-color: #495057;
+    }
+    .accordion-button::after {
+        filter: brightness(0) invert(1); /* Makes the arrow icon white */
+    }
+    .accordion-button strong { /* Explicitly set color for strong tag inside accordion button */
+        color: white;
+    }
+    .accordion-body .list-group-item {
+        background-color: #343a40;
+        color: white;
+        border-color: #495057;
+    }
+    .accordion-body .list-group-item:hover {
+        background-color: #495057;
+    }
+</style>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                Total Revenue
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">${{ "%.2f"|format(total_revenue) }}</h5>
+                <p class="card-text">Total earnings from all completed parking sessions.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                Parking Occupancy
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ occupancy_data['occupied_slots'] }} / {{ occupancy_data['total_slots'] }} slots ({{ "%.2f"|format(occupancy_data['occupancy_percentage']) }}%)</h5>
+                <p class="card-text">Current status of parking slots across all lots.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                User Management
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">Manage Users</h5>
+                <p class="card-text">Approve new user registrations and view all users.</p>
+                <a href="{{ url_for('users_management') }}" class="btn btn-primary">Go to Users</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2 class="mb-3">Parking Lots by Area</h2>
+
+<div class="accordion" id="lotsAccordion">
+    {% for area, lots_in_area in lots_by_area.items() %}
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="heading-{{ area|replace(' ', '-') }}">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ area|replace(' ', '-') }}" aria-expanded="false" aria-controls="collapse-{{ area|replace(' ', '-') }}">
+                <strong>{{ area }}</strong>
+            </button>
+        </h2>
+        <div id="collapse-{{ area|replace(' ', '-') }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ area|replace(' ', '-') }}" data-bs-parent="#lotsAccordion">
+            <div class="accordion-body">
+                <p>Select a parking lot to view its status in a visual grid.</p>
+                <div class="list-group">
+                    {% for lot in lots_in_area|sort(attribute='name') %}
+                        <a href="{{ url_for('lot_detail', lot_id=lot.id) }}" class="list-group-item list-group-item-action">
+                            {{ lot.area }} Parking
+                        </a>
+                    {% else %}
+                        <p class="list-group-item">No parking lots found in this area.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body">
+                No parking lots found. Create some via the API to see them here.
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

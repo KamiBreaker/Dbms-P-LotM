@@ -1,0 +1,187 @@
+/* Custom Styles for Smart Parking Lot */
+
+:root {
+    --primary-color: #007bff; /* A vibrant blue for accents */
+    --secondary-color: #6c757d;
+    --dark-bg: #121212; /* Deeper black for background */
+    --dark-card-bg: #1e1e1e; /* Slightly lighter for cards */
+    --dark-border: #333333;
+    --text-color: #e0e0e0;
+    --light-text-color: #aaaaaa;
+}
+
+body {
+    background-color: var(--dark-bg);
+    color: var(--text-color);
+    font-family: 'Roboto', sans-serif;
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #ffffff;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+h1 {
+    font-size: 2.5rem;
+    text-transform: uppercase; /* Mimic portfolio emphasis */
+    letter-spacing: 1.5px;
+}
+
+h2 {
+    font-size: 2rem;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+    margin-top: 2rem;
+}
+
+.navbar {
+    background-color: var(--dark-card-bg) !important;
+    border-bottom: 1px solid var(--dark-border);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.navbar-brand {
+    color: #ffffff !important;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.nav-link {
+    color: var(--text-color) !important;
+    padding: 0.5rem 1rem;
+    transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out;
+}
+
+.nav-link:hover {
+    color: var(--primary-color) !important;
+    background-color: rgba(0, 123, 255, 0.1); /* Subtle hover background */
+    border-radius: 0.25rem;
+}
+
+.jumbotron {
+    background-color: var(--dark-card-bg);
+    color: #ffffff;
+    padding: 4rem 2rem;
+    margin-bottom: 2rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.jumbotron .display-4 {
+    font-size: 3.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.card {
+    background-color: var(--dark-card-bg);
+    color: var(--text-color);
+    border: 1px solid var(--dark-border);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px); /* Subtle lift effect on hover */
+}
+
+.card-header {
+    background-color: #2a2a2a;
+    border-bottom: 1px solid var(--dark-border);
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.table {
+    color: var(--text-color);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.form-control, .form-select {
+    background-color: #333333;
+    color: #ffffff;
+    border: 1px solid #555555;
+}
+
+.form-control::placeholder {
+    color: var(--light-text-color);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+    border-color: #545b62;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #c82333;
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #212529;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+    border-color: #e0a800;
+}
+
+.alert-success {
+    background-color: #28a745;
+    color: #fff;
+    border-color: #28a745;
+}
+
+.alert-danger {
+    background-color: #dc3545;
+    color: #fff;
+    border-color: #dc3545;
+}
+
+.alert-dismissible .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Custom spacing */
+.container {
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+.form-label {
+    font-weight: 700;
+    color: var(--text-color);
+}

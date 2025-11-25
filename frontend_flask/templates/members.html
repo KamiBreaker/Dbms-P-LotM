@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Member Management</h1>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h2>Add New Member</h2>
+        <form method="POST" action="{{ url_for('members_management') }}">
+            <div class="mb-3">
+                <label for="name" class="form-label">Member Name</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            <div class="mb-3">
+                <label for="license_plate" class="form-label">Associated Vehicle License Plate</label>
+                <input type="text" class="form-control" id="license_plate" name="license_plate" required>
+            </div>
+            <div class="mb-3">
+                <label for="discount_percentage" class="form-label">Discount Percentage (%)</label>
+                <input type="number" class="form-control" id="discount_percentage" name="discount_percentage" value="10.0" step="0.1">
+            </div>
+            <button type="submit" class="btn btn-primary">Add Member</button>
+        </form>
+    </div>
+    <div class="col-md-6">
+        <h2>Filter Members</h2>
+        <form method="GET" action="{{ url_for('members_management') }}">
+            <div class="mb-3">
+                <label for="name_filter" class="form-label">Filter by Name</label>
+                <input type="text" class="form-control" id="name_filter" name="name" value="{{ name_filter or '' }}">
+            </div>
+            <button type="submit" class="btn btn-secondary">Apply Filter</button>
+        </form>
+    </div>
+</div>
+
+<h2 class="mt-4">All Members</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Discount (%)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for member in members %}
+        <tr>
+            <td>{{ member.id }}</td>
+            <td>{{ member.name }}</td>
+            <td>{{ member.discount_percentage }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="3">No members found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

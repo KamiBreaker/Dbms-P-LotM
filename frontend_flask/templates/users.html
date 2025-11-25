@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">User Management</h1>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h2>Add New User</h2>
+        <form method="POST" action="{{ url_for('users_management') }}">
+            <div class="mb-3">
+                <label for="name" class="form-label">User Name</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            <div class="mb-3">
+                <label for="license_plate" class="form-label">Associated Vehicle License Plate</label>
+                <input type="text" class="form-control" id="license_plate" name="license_plate" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <div class="mb-3">
+                <label for="discount_percentage" class="form-label">Discount Percentage (%)</label>
+                <input type="number" class="form-control" id="discount_percentage" name="discount_percentage" value="10.0" step="0.1">
+            </div>
+            <button type="submit" class="btn btn-primary">Add User</button>
+        </form>
+    </div>
+    <div class="col-md-6">
+        <h2>Filter Users</h2>
+        <form method="GET" action="{{ url_for('users_management') }}">
+            <div class="mb-3">
+                <label for="name_filter" class="form-label">Filter by Name</label>
+                <input type="text" class="form-control" id="name_filter" name="name" value="{{ name_filter or '' }}">
+            </div>
+            <button type="submit" class="btn btn-secondary">Apply Filter</button>
+        </form>
+    </div>
+</div>
+
+<h2 class="mt-4">All Users</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Total Activities</th>
+            <th>To Next Tier</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.name }}</td>
+            <td>{{ user.role }}</td>
+            <td>
+                {% if user.is_active %}
+                    <span class="badge bg-success">Active</span>
+                {% else %}
+                    <span class="badge bg-warning">Pending</span>
+                {% endif %}
+            </td>
+            <td>{{ user.total_activities }}</td>
+            <td>{{ 5 - (user.total_activities % 5) }}</td>
+            <td>
+                {% if not user.is_active %}
+                    <form method="POST" action="{{ fastapi_base_url }}/api/users/{{ user.id }}/approve" class="approve-form" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                    </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="7">No users found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const approveForms = document.querySelectorAll('.approve-form');
+    approveForms.forEach(form => {
+        form.addEventListener('submit', function (event) {
+            // Prevent the default form submission which causes a page redirect
+            event.preventDefault();
+
+            const formAction = event.target.action;
+            const csrfToken = "{{ csrf_token() if 'csrf_token' in globals else '' }}"; // Handle if CSRF is not used
+
+            fetch(formAction, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-Token': csrfToken // Include CSRF token if it exists
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Network response was not ok.');
+            })
+            .then(data => {
+                // Show a success popup
+                alert('User approved successfully!');
+                // Reload the page to show the updated status
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while approving the user.');
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

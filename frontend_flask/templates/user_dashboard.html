@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Welcome, {{ g.user.name }}!</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                Your Stats
+            </div>
+            <div class="card-body">
+                <p class="card-text"><strong>Total Check-outs:</strong> {{ g.user.total_activities }}</p>
+                <p class="card-text"><strong>Discount Level:</strong> {{ "%.2f"|format(g.user.discount_percentage) }}%</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                Actions
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">Make a Reservation</h5>
+                <p class="card-text">Reserve a parking spot in advance.</p>
+                <a href="{{ url_for('reservations_start') }}" class="btn btn-primary">Reserve a Spot</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('reservations_start') }}">Step 1: Select User</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('reservations_areas', user_id=user_id) }}">Step 2: Select Area</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('reservations_lots', user_id=user_id, area_name=lot.area) }}">Step 3: Select Lot</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Step 4: Select Slot</li>
+    </ol>
+</nav>
+
+<h1 class="mb-4">Select a Slot to Reserve in {{ lot.name }}</h1>
+<p class="lead">Only available slots are clickable.</p>
+
+<style>
+    .slot-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 15px;
+    }
+    .slot-btn {
+        border: none;
+        border-radius: 0.375rem;
+        padding: 15px;
+        text-align: center;
+        font-weight: bold;
+        color: white;
+        width: 100%;
+        height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    .slot-btn .slot-type {
+        font-size: 0.8rem;
+        font-weight: normal;
+    }
+    .slot-btn:disabled {
+        color: #ccc;
+        cursor: not-allowed;
+    }
+</style>
+
+<div class="legend">
+    <div class="legend-item"><div class="legend-color status-available"></div><span>Available</span></div>
+    <div class="legend-item"><div class="legend-color status-occupied"></div><span>Occupied</span></div>
+    <div class="legend-item"><div class="legend-color status-reserved"></div><span>Reserved</span></div>
+</div>
+
+<form method="POST" action="{{ url_for('reservations_slots', user_id=user_id, lot_id=lot.id) }}" id="reservationForm">
+    <div class="mb-3">
+        <label for="reservation_date" class="form-label">Reservation Date</label>
+        <input type="date" class="form-control" id="reservation_date" name="reservation_date" required>
+    </div>
+    <div class="mb-3">
+        <label for="expected_check_in_time" class="form-label">Expected Check-in Time (24h)</label>
+        <input type="time" class="form-control" id="expected_check_in_time" name="expected_check_in_time" step="60" required>
+    </div>
+    <div class="mb-3">
+        <label for="expected_check_out_time" class="form-label">Expected Check-out Time (24h)</label>
+        <input type="time" class="form-control" id="expected_check_out_time" name="expected_check_out_time" step="60" required>
+    </div>
+    <div class="slot-grid">
+        {% for slot in lot.slots|sort(attribute='slot_number') %}
+            <button type="submit" name="slot_id" value="{{ slot.id }}" class="slot-btn status-{{ slot.status }}" {% if slot.status != 'available' %}disabled{% endif %}>
+                <span>{{ slot.slot_number }}</span>
+                <span class="slot-type">({{ slot.slot_type }})</span>
+            </button>
+        {% else %}
+            <p>This parking lot has no slots configured.</p>
+        {% endfor %}
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('reservationForm');
+    form.addEventListener('submit', function(event) {
+        // Prevent default form submission
+        event.preventDefault();
+
+        const slotId = event.submitter.value; // Get slot_id from the clicked button
+
+        const reservationDate = document.getElementById('reservation_date').value;
+        const checkInTime = document.getElementById('expected_check_in_time').value;
+        const checkOutTime = document.getElementById('expected_check_out_time').value;
+
+        // Client-side validation for times
+        if (checkInTime >= checkOutTime) {
+            alert('Expected Check-out Time must be after Expected Check-in Time on the same day.');
+            return; // Stop submission
+        }
+
+        // Combine date and time into ISO format
+        const expectedCheckIn = `${reservationDate}T${checkInTime}:00`;
+        const expectedCheckOut = `${reservationDate}T${checkOutTime}:00`;
+
+        // Create hidden inputs for the combined values
+        const hiddenSlotId = document.createElement('input');
+        hiddenSlotId.type = 'hidden';
+        hiddenSlotId.name = 'slot_id';
+        hiddenSlotId.value = slotId;
+        form.appendChild(hiddenSlotId);
+
+        const hiddenCheckIn = document.createElement('input');
+        hiddenCheckIn.type = 'hidden';
+        hiddenCheckIn.name = 'expected_check_in_time';
+        hiddenCheckIn.value = expectedCheckIn;
+        form.appendChild(hiddenCheckIn);
+
+        const hiddenCheckOut = document.createElement('input');
+        hiddenCheckOut.type = 'hidden';
+        hiddenCheckOut.name = 'expected_check_out_time';
+        hiddenCheckOut.value = expectedCheckOut;
+        form.appendChild(hiddenCheckOut);
+
+        // Now submit the form with the combined values
+        form.submit();
+    });
+});
+</script>
+
+{% endblock %}
