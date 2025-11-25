@@ -35,12 +35,18 @@
                     <td>{{ session.check_in_time.split('.')[0].replace('T', ' ') if session.check_in_time else 'N/A' }}</td>
                     <td>{{ session.check_out_time.split('.')[0].replace('T', ' ') if session.check_out_time else 'Still Parked' }}</td>
                     <td>{{ 'Yes' if session.is_vip_session else 'No' }}</td>
-                    <td>${{ "%.2f"|format(session.total_fee) if session.total_fee is not none else 'N/A' }}</td>
-                    {% if g.user and g.user.role == 'admin' %}
-                    <td>
-                        <button class="btn btn-danger btn-sm delete-btn" data-session-id="{{ session.id }}">Delete</button>
-                    </td>
+                <td>
+                    {% if session.total_fee is not none %}
+                        ৳{{ "%.2f"|format(session.total_fee) }}
+                    {% else %}
+                        N/A
                     {% endif %}
+                </td>
+                {% if g.user and g.user.role == 'admin' %}
+                <td>
+                    <button class="btn btn-danger btn-sm delete-btn" data-session-id="{{ session.id }}">Delete</button>
+                </td>
+                {% endif %}
                 </tr>
                 {% else %}
                 <tr>
@@ -52,7 +58,7 @@
             <tfoot>
                 <tr>
                     <td colspan="6" class="text-end"><strong>Total Revenue:</strong></td>
-                    <td><strong>${{ "%.2f"|format(total_revenue) }}</strong></td>
+                    <td><strong>৳{{ "%.2f"|format(total_revenue) }}</strong></td>
                 </tr>
             </tfoot>
             {% endif %}

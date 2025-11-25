@@ -51,7 +51,7 @@ class ParkingLot(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), unique=True, nullable=False)
     area = Column(String(255), index=True, nullable=False)
-    hourly_rate = Column(Float, nullable=False, default=2.5)
+    hourly_rate = Column(Float, nullable=False, default=100)
     slots = relationship("ParkingSlot", back_populates="lot")
 
 class User(Base):
@@ -651,15 +651,27 @@ def direct_check_out(request: CheckOutRequestSchema, db: Session = Depends(get_d
     
     chargeable_hours = actual_hours
 
-    # Enforce reservation minimum fee
+    # Enforce minimum fee based on expected duration
     if active_session.reservation_id:
-        reservation = db.query(Reservation).filter(Reservation.id == active_session.reservation_id).first()
-        if reservation and reservation.expected_check_out_time and reservation.expected_check_in_time:
-            reserved_duration_seconds = (reservation.expected_check_out_time - reservation.expected_check_in_time).total_seconds()
-            reserved_hours = math.ceil(reserved_duration_seconds / 3600)
-            
-            if reserved_hours > chargeable_hours:
-                chargeable_hours = reserved_hours
+         # Case A: Reservation Session
+         # Minimum fee is based on the original reservation duration (Minimum Commitment)
+         reservation = db.query(Reservation).filter(Reservation.id == active_session.reservation_id).first()
+         if reservation and reservation.expected_check_out_time and reservation.expected_check_in_time:
+             reserved_duration_seconds = (reservation.expected_check_out_time - reservation.expected_check_in_time).total_seconds()
+             reserved_hours = math.ceil(reserved_duration_seconds / 3600)
+             
+             if reserved_hours > chargeable_hours:
+                 chargeable_hours = reserved_hours
+
+    elif active_session.expected_check_out_time:
+        # Case B: Direct Check-In with Specified Duration
+        # Minimum fee is based on the duration requested at check-in
+        # Since check_in_time is the start reference for direct sessions, (expected_out - check_in) is valid here.
+        expected_duration_seconds = (active_session.expected_check_out_time - active_session.check_in_time).total_seconds()
+        expected_hours = math.ceil(expected_duration_seconds / 3600)
+        
+        if expected_hours > chargeable_hours:
+            chargeable_hours = expected_hours
 
     base_fee = chargeable_hours * HOURLY_RATE
     

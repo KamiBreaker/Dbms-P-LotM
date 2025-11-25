@@ -561,7 +561,7 @@ def check_out_page():
 
         if response.ok:
             session_data = response.json()
-            flash(f"Vehicle {license_plate} checked out. Total Fee: ${session_data.get('total_fee', 'N/A'):.2f}", "success")
+            flash(f"Vehicle {license_plate} checked out. Total Fee: ৳{session_data.get('total_fee', 'N/A'):.2f}", "success")
             return redirect(url_for('check_out_page'))
         else:
             flash(f"Error checking out: {response.json().get('detail', 'Unknown error')}", "danger")

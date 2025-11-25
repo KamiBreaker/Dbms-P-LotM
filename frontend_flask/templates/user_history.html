@@ -33,7 +33,7 @@
                 </td>
                 <td>
                     {% if session.total_fee is not none %}
-                        ${{ "%.2f"|format(session.total_fee) }}
+                        ৳{{ "%.2f"|format(session.total_fee) }}
                     {% else %}
                         N/A
                     {% endif %}

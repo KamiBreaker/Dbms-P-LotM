@@ -9,13 +9,13 @@ MIN_SPOTS_PER_LOT = 25
 MAX_SPOTS_PER_LOT = 60
 
 DEFAULT_PARKING_LOTS = [
-    {"name": "MirpurDohs Parking", "area": "Mirpur", "hourly_rate": 3.0},
-    {"name": "Mohammadpur Parking", "area": "Mohammadpur", "hourly_rate": 2.5},
-    {"name": "Uttara Parking", "area": "Uttara", "hourly_rate": 2.0},
-    {"name": "Gulshan Parking", "area": "Gulshan", "hourly_rate": 3.5},
-    {"name": "Banani Parking", "area": "Banani", "hourly_rate": 2.75},
-    {"name": "Bashundhara Parking", "area": "Bashundhara", "hourly_rate": 4.0},
-    {"name": "Tejgaon Parking", "area": "Tejgaon", "hourly_rate": 3.25},
+    {"name": "MirpurDohs Parking", "area": "Mirpur", "hourly_rate": 120.0},
+    {"name": "Mohammadpur Parking", "area": "Mohammadpur", "hourly_rate": 100.0},
+    {"name": "Uttara Parking", "area": "Uttara", "hourly_rate": 80.0},
+    {"name": "Gulshan Parking", "area": "Gulshan", "hourly_rate": 140.0},
+    {"name": "Banani Parking", "area": "Banani", "hourly_rate": 110.0},
+    {"name": "Bashundhara Parking", "area": "Bashundhara", "hourly_rate": 160.0},
+    {"name": "Tejgaon Parking", "area": "Tejgaon", "hourly_rate": 130.0},
 ]
 
 def generate_slot_number(index):
