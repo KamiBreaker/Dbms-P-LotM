@@ -93,9 +93,11 @@ class ParkingSession(Base):
     total_fee = Column(Float, nullable=True)
     vehicle_id = Column(Integer, ForeignKey("vehicles.id"))
     slot_id = Column(Integer, ForeignKey("parking_slots.id"))
+    reservation_id = Column(Integer, ForeignKey("reservations.id"), nullable=True)
     is_vip_session = Column(Boolean, default=False, nullable=False)
     vehicle = relationship("Vehicle", back_populates="sessions")
     slot = relationship("ParkingSlot")
+    reservation = relationship("Reservation")
 
 class Reservation(Base):
     __tablename__ = "reservations"
@@ -110,6 +112,14 @@ class Reservation(Base):
     slot = relationship("ParkingSlot")
     user = relationship("User")
     vehicle = relationship("Vehicle")
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    message = Column(String(1000), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User")
 
 # --- Pydantic Schemas ---
 
@@ -281,6 +291,17 @@ class TopUserSchema(BaseModel):
     name: str
     total_activities: int
     discount_percentage: float
+    class Config: { "from_attributes": True }
+
+class FeedbackCreateSchema(BaseModel):
+    message: str
+
+class FeedbackSchema(BaseModel):
+    id: int
+    user_id: int
+    message: str
+    created_at: datetime
+    user: Optional[UserSchema] = None
     class Config: { "from_attributes": True }
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -593,7 +614,8 @@ def check_in(request: CheckInRequestSchema, db: Session = Depends(get_db)):
         slot_id=slot_to_occupy.id,
         check_in_time=session_check_in_time,
         expected_check_out_time=session_expected_check_out_time,
-        is_vip_session=is_vip_session
+        is_vip_session=is_vip_session,
+        reservation_id=reservation_to_fulfill.id if reservation_to_fulfill else None
     )
 
     # 6. Update slot status, fulfill reservation if any, and commit
@@ -623,9 +645,23 @@ def direct_check_out(request: CheckOutRequestSchema, db: Session = Depends(get_d
 
     HOURLY_RATE = parking_lot.hourly_rate
     
-    duration_seconds = (active_session.check_out_time - active_session.check_in_time).total_seconds()
-    hours_parked = math.ceil(duration_seconds / 3600)
-    base_fee = hours_parked * HOURLY_RATE
+    # Calculate actual duration
+    actual_duration_seconds = (active_session.check_out_time - active_session.check_in_time).total_seconds()
+    actual_hours = math.ceil(actual_duration_seconds / 3600)
+    
+    chargeable_hours = actual_hours
+
+    # Enforce reservation minimum fee
+    if active_session.reservation_id:
+        reservation = db.query(Reservation).filter(Reservation.id == active_session.reservation_id).first()
+        if reservation and reservation.expected_check_out_time and reservation.expected_check_in_time:
+            reserved_duration_seconds = (reservation.expected_check_out_time - reservation.expected_check_in_time).total_seconds()
+            reserved_hours = math.ceil(reserved_duration_seconds / 3600)
+            
+            if reserved_hours > chargeable_hours:
+                chargeable_hours = reserved_hours
+
+    base_fee = chargeable_hours * HOURLY_RATE
     
     user = active_session.vehicle.user
     if user:
@@ -690,7 +726,8 @@ def vip_check_in(request: VipCheckInRequestSchema, db: Session = Depends(get_db)
         slot_id=slot.id,
         check_in_time=datetime.utcnow(),
         expected_check_out_time=reservation.expected_check_out_time,
-        is_vip_session=True # Mark as VIP session
+        is_vip_session=True, # Mark as VIP session
+        reservation_id=reservation.id
     )
     db.add(new_session)
 
@@ -928,5 +965,17 @@ def create_vehicle(vehicle: VehicleCreateSchema, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_vehicle)
     return new_vehicle
+
+@app.post("/api/feedback", response_model=FeedbackSchema, status_code=status.HTTP_201_CREATED)
+def create_feedback(feedback: FeedbackCreateSchema, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    new_feedback = Feedback(user_id=current_user.id, message=feedback.message)
+    db.add(new_feedback)
+    db.commit()
+    db.refresh(new_feedback)
+    return new_feedback
+
+@app.get("/api/feedback", response_model=List[FeedbackSchema])
+def get_feedback(db: Session = Depends(get_db), current_admin_user: User = Depends(get_current_admin_user)):
+    return db.query(Feedback).options(joinedload(Feedback.user)).order_by(Feedback.created_at.desc()).all()
 
 

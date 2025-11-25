@@ -14,7 +14,7 @@
     <div class="sidebar">
         <div>
             <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="fas fa-parking me-2 text-primary"></i> ParkingMan
+                <i class="fas fa-parking me-2 text-primary"></i> EasyPark
             </a>
             {% if g.user %}
             <ul class="nav flex-column mt-4">
@@ -61,6 +61,13 @@
                         <i class="fas fa-history w-20"></i> My History
                     </a>
                 </li>
+                {% if g.user.role != 'admin' %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('feedback') }}">
+                        <i class="fas fa-comment-dots w-20"></i> Feedback
+                    </a>
+                </li>
+                {% endif %}
             </ul>
             {% endif %}
         </div>

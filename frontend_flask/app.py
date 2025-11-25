@@ -555,6 +555,27 @@ def check_out_page():
 
 
 
+@app.route('/feedback', methods=['GET', 'POST'])
+@login_required
+def feedback():
+    if request.method == 'POST':
+        message = request.form.get('message')
+        if not message:
+            flash("Message cannot be empty.", "danger")
+            return redirect(url_for('feedback'))
+        
+        headers = {'Authorization': f'Bearer {session["access_token"]}'}
+        payload = {"message": message}
+        response = requests.post(f"{FASTAPI_BASE_URL}/api/feedback", json=payload, headers=headers)
+        
+        if response.ok:
+            flash("Thank you for your feedback!", "success")
+            return redirect(url_for('user_dashboard'))
+        else:
+            flash("Error submitting feedback. Please try again.", "danger")
+            
+    return render_template('feedback.html')
+
 @app.route('/reports')
 @login_required
 def reports():
