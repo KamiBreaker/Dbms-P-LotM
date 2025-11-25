@@ -142,6 +142,22 @@ def admin_dashboard():
     else:
         return render_template('user_dashboard.html')
 
+@app.route('/admin/feedback')
+@login_required
+def admin_feedback():
+    if g.user.get('role') != 'admin':
+        flash("Access denied.", "danger")
+        return redirect(url_for('index'))
+        
+    headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    response = requests.get(f"{FASTAPI_BASE_URL}/api/feedback", headers=headers)
+    
+    feedback_list = []
+    if response.ok:
+        feedback_list = response.json()
+    
+    return render_template('admin_feedback.html', feedback_list=feedback_list)
+
 @app.route('/lots/<int:lot_id>/add_slot', methods=['POST'])
 @login_required
 def add_slot(lot_id):
