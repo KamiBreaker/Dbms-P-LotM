@@ -464,6 +464,24 @@ def approve_user(user_id: int, db: Session = Depends(get_db)):
     db.refresh(user_to_approve)
     return user_to_approve
 
+@app.delete("/api/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin_user: User = Depends(get_current_admin_user)
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Optional: Handle related data cleanup if necessary (e.g., nullify user_id in vehicles)
+    # For now, we rely on the database constraints or manual cleanup if complex logic is needed.
+    # If specific cascade behavior is required, it should be defined in the models or handled here.
+    
+    db.delete(user)
+    db.commit()
+    return
+
 # --- ParkingLot Endpoints ---
 @app.post("/api/lots", response_model=ParkingLotSchema, status_code=status.HTTP_201_CREATED)
 def create_parking_lot(lot: ParkingLotCreate, db: Session = Depends(get_db)):
