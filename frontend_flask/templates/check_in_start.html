@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="mb-4">Direct Check-In: Step 1</h1>
-<p class="lead">Select an existing vehicle or enter a new license plate.</p>
+<h1 class="mb-4">Park Now (Ad-Hoc)</h1>
+<p class="lead">Use this only if you just arrived and are parking in an available spot without a prior reservation.</p>
+<p class="text-muted">If you have a reservation, please use the <strong><a href="{{ url_for('user_dashboard') }}">Dashboard</a></strong> to check in quickly.</p>
 
 <div class="card">
     <div class="card-body">

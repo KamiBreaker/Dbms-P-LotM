@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -35,20 +36,16 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('vip_check_in_page') }}">
-                        <i class="fas fa-user-tie w-20"></i> VIP Check-In
-                    </a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('admin_feedback') }}">
                         <i class="fas fa-comments w-20"></i> User Feedback
                     </a>
                 </li>
                 {% endif %}
                 
+                {% if g.user.role != 'admin' %}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('check_in_start') }}">
-                        <i class="fas fa-sign-in-alt w-20"></i> Direct Check-In
+                        <i class="fas fa-sign-in-alt w-20"></i> Park Now
                     </a>
                 </li>
                 <li class="nav-item">
@@ -56,14 +53,16 @@
                         <i class="fas fa-sign-out-alt w-20"></i> Check-Out
                     </a>
                 </li>
+                {% endif %}
+
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('reservations_start') }}">
+                    <a class="nav-link" href="{{ url_for('admin_reservations') if g.user.role == 'admin' else url_for('reservations_start') }}">
                         <i class="fas fa-calendar-check w-20"></i> Reservations
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('history') }}">
-                        <i class="fas fa-history w-20"></i> My History
+                        <i class="fas fa-history w-20"></i> {% if g.user.role == 'admin' %}Parking History{% else %}My History{% endif %}
                     </a>
                 </li>
                 {% if g.user.role != 'admin' %}
@@ -118,6 +117,7 @@
         {% block content %}{% endblock %}
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

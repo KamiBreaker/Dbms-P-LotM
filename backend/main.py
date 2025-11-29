@@ -106,6 +106,7 @@ class Reservation(Base):
     status = Column(String(255), default="active")
     expected_check_in_time = Column(DateTime, nullable=True)
     expected_check_out_time = Column(DateTime, nullable=True)
+    amount_paid = Column(Float, default=0.0)
     slot_id = Column(Integer, ForeignKey("parking_slots.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
     vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=True)
@@ -205,6 +206,11 @@ class VehicleSchema(BaseModel):
     user_id: Optional[int] = None
     user_name: Optional[str] = None
     user_discount_percentage: Optional[float] = None
+    estimated_fee: Optional[float] = None
+    undiscounted_estimated_fee: Optional[float] = None # Added for clarity
+    hourly_rate: Optional[float] = None # Added for display
+    active_session_check_in: Optional[datetime] = None
+    lot_name: Optional[str] = None
     class Config: { "from_attributes": True }
 
 class CheckInRequestSchema(BaseModel):
@@ -260,6 +266,7 @@ class ReservationSchema(BaseModel):
     status: str
     expected_check_in_time: Optional[datetime] = None
     expected_check_out_time: Optional[datetime] = None
+    amount_paid: float = 0.0
     slot_id: int
     user_id: int
     vehicle_id: Optional[int] = None
@@ -439,11 +446,27 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 @app.get("/api/users/me/sessions", response_model=List[ParkingSessionHistorySchema])
-async def read_user_sessions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if current_user.role == 'admin':
-        sessions = db.query(ParkingSession).options(joinedload(ParkingSession.vehicle).joinedload(Vehicle.user)).order_by(ParkingSession.check_in_time.desc()).all()
-    else:
-        sessions = db.query(ParkingSession).join(Vehicle).filter(Vehicle.user_id == current_user.id).options(joinedload(ParkingSession.vehicle).joinedload(Vehicle.user)).order_by(ParkingSession.check_in_time.desc()).all()
+async def read_user_sessions(
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    query = db.query(ParkingSession).options(joinedload(ParkingSession.vehicle).joinedload(Vehicle.user))
+
+    if current_user.role != 'admin':
+        query = query.join(Vehicle).filter(Vehicle.user_id == current_user.id)
+
+    if start_date:
+        query = query.filter(ParkingSession.check_in_time >= start_date)
+    if end_date:
+        # Adjust end_date to cover the whole day if needed, or assume exact timestamp
+        # Usually date pickers send 00:00:00, so we might want to include the whole day if user meant "on this date"
+        # But for range end, usually it's fine as is if user selects end date.
+        # Let's stick to standard filter logic.
+        query = query.filter(ParkingSession.check_in_time <= end_date)
+
+    sessions = query.order_by(ParkingSession.check_in_time.desc()).all()
     return sessions
 
 @app.get("/api/users", response_model=List[UserSchema])
@@ -565,8 +588,10 @@ def check_in(request: CheckInRequestSchema, db: Session = Depends(get_db)):
         db.add(vehicle)
         db.flush() 
     
-    # 2b. Link User if provided and vehicle not linked
-    if request.user_id and not vehicle.user_id:
+    # 2b. Link (or Re-link) User to Vehicle
+    # If a user is performing the check-in, they become the temporary 'owner' 
+    # ensuring they can see the vehicle in their checkout list.
+    if request.user_id:
         # Verify user exists
         user = db.query(User).filter(User.id == request.user_id).first()
         if user:
@@ -713,6 +738,7 @@ def direct_check_out(request: CheckOutRequestSchema, db: Session = Depends(get_d
     else:
         final_fee = base_fee
         
+    # Store the FULL value of the session in total_fee
     active_session.total_fee = final_fee
     
     slot.status = "available"
@@ -815,9 +841,29 @@ def get_daily_summary(report_date: str, db: Session = Depends(get_db)):
     end_of_day = datetime.datetime.combine(target_date, datetime.time.max)
 
     # Total Revenue
-    total_revenue = db.query(func.sum(ParkingSession.total_fee)).filter(
-        ParkingSession.check_out_time >= start_of_day, ParkingSession.check_out_time <= end_of_day
+    # 1. Revenue from completed sessions (total_fee now includes the full amount)
+    session_revenue = db.query(func.sum(ParkingSession.total_fee)).filter(
+        ParkingSession.check_out_time >= start_of_day, 
+        ParkingSession.check_out_time <= end_of_day
     ).scalar() or 0.0
+    
+    # 2. Revenue from reservations that are NOT yet linked to a completed session
+    # (i.e. active sessions or no-shows/cancelled but paid)
+    # We exclude reservations where the linked session has a check_out_time (because those are counted in session_revenue)
+    
+    completed_session_reservation_ids = db.query(ParkingSession.reservation_id).filter(
+        ParkingSession.check_out_time >= start_of_day, 
+        ParkingSession.check_out_time <= end_of_day,
+        ParkingSession.reservation_id.isnot(None)
+    )
+    
+    reservation_revenue = db.query(func.sum(Reservation.amount_paid)).filter(
+        Reservation.reservation_time >= start_of_day, 
+        Reservation.reservation_time <= end_of_day,
+        Reservation.id.notin_(completed_session_reservation_ids)
+    ).scalar() or 0.0
+    
+    total_revenue = session_revenue + reservation_revenue
 
     # Total Sessions
     total_sessions = db.query(ParkingSession).filter(
@@ -844,8 +890,20 @@ def get_daily_summary(report_date: str, db: Session = Depends(get_db)):
 
 @app.get("/api/reports/revenue", response_model=ReportRevenueSchema)
 def get_total_revenue(db: Session = Depends(get_db)):
-    total_revenue = db.query(func.sum(ParkingSession.total_fee)).filter(ParkingSession.check_out_time.isnot(None)).scalar()
-    return {"total_revenue": total_revenue or 0.0}
+    # 1. All completed sessions (full value)
+    session_revenue = db.query(func.sum(ParkingSession.total_fee)).filter(ParkingSession.check_out_time.isnot(None)).scalar() or 0.0
+    
+    # 2. Reservations not linked to completed sessions
+    completed_session_reservation_ids = db.query(ParkingSession.reservation_id).filter(
+        ParkingSession.check_out_time.isnot(None),
+        ParkingSession.reservation_id.isnot(None)
+    )
+    
+    reservation_revenue = db.query(func.sum(Reservation.amount_paid)).filter(
+        Reservation.id.notin_(completed_session_reservation_ids)
+    ).scalar() or 0.0
+    
+    return {"total_revenue": session_revenue + reservation_revenue}
 
 @app.get("/api/reports/occupancy", response_model=ReportOccupancySchema)
 def get_occupancy_report(db: Session = Depends(get_db)):
@@ -921,13 +979,32 @@ def create_reservation(res_data: ReservationCreateSchema, db: Session = Depends(
             db.flush()
         vehicle_id = vehicle.id
 
+    # --- Payment Calculation ---
+    # Ensure lot is loaded to get hourly_rate
+    lot = slot_to_reserve.lot
+    if not lot:
+         lot = db.query(ParkingLot).filter(ParkingLot.id == slot_to_reserve.lot_id).first()
+    
+    hourly_rate = lot.hourly_rate if lot else 100.0 # Default fallback
+    
+    duration = res_data.expected_check_out_time - res_data.expected_check_in_time
+    duration_hours = math.ceil(duration.total_seconds() / 3600)
+    if duration_hours < 1: duration_hours = 1
+    
+    base_fee = duration_hours * hourly_rate
+    final_fee = base_fee
+    
+    if user.discount_percentage > 0:
+        final_fee = base_fee * (1 - (user.discount_percentage / 100))
+
     slot_to_reserve.status = "reserved"
     new_reservation = Reservation(
         user_id=user.id, 
         slot_id=slot_to_reserve.id, 
         expected_check_in_time=res_data.expected_check_in_time, 
         expected_check_out_time=res_data.expected_check_out_time,
-        vehicle_id=vehicle_id
+        vehicle_id=vehicle_id,
+        amount_paid=final_fee
     )
     db.add(new_reservation)
     db.commit()
@@ -935,14 +1012,39 @@ def create_reservation(res_data: ReservationCreateSchema, db: Session = Depends(
     return new_reservation
 
 @app.get("/api/reservations", response_model=List[ReservationSchema])
-def get_reservations(status: Optional[str] = None, db: Session = Depends(get_db)):
+def get_reservations(
+    status: Optional[str] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    user_query: Optional[str] = None,
+    license_plate: Optional[str] = None,
+    area: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
     query = db.query(Reservation).options(
         joinedload(Reservation.slot).joinedload(ParkingSlot.lot), 
         joinedload(Reservation.user),
         joinedload(Reservation.vehicle) # Load vehicle
     )
+    
     if status:
         query = query.filter(Reservation.status == status)
+    
+    if start_date:
+        query = query.filter(Reservation.expected_check_in_time >= start_date)
+        
+    if end_date:
+        query = query.filter(Reservation.expected_check_in_time <= end_date)
+        
+    if user_query:
+        query = query.join(User).filter(User.name.ilike(f"%{user_query}%"))
+        
+    if license_plate:
+        query = query.join(Vehicle).filter(Vehicle.license_plate.ilike(f"%{license_plate}%"))
+        
+    if area:
+        query = query.join(ParkingSlot).join(ParkingLot).filter(ParkingLot.area.ilike(f"%{area}%"))
+
     return query.all()
 
 # --- Slot Endpoints ---
@@ -976,16 +1078,82 @@ def get_vehicles(license_plate: Optional[str] = None, status: Optional[str] = No
     if license_plate:
         query = query.filter(Vehicle.license_plate == license_plate)
     if status == "parked":
-        query = query.join(ParkingSession).filter(ParkingSession.check_out_time == None)
+        # Optimize loading for fee calculation
+        query = query.join(ParkingSession).filter(ParkingSession.check_out_time == None).options(
+            joinedload(Vehicle.sessions).joinedload(ParkingSession.slot).joinedload(ParkingSlot.lot)
+        )
     
     vehicles = query.all()
     
-    # Manually populate user_name and user_discount_percentage
+    # Manually populate user_name, user_discount_percentage, and fee estimate
     for vehicle in vehicles:
         if vehicle.user:
             vehicle.user_name = vehicle.user.name
             vehicle.user_discount_percentage = vehicle.user.discount_percentage
             
+        if status == "parked":
+            # Find the active session
+            active_session = next((s for s in vehicle.sessions if s.check_out_time is None), None)
+            if active_session:
+                vehicle.active_session_check_in = active_session.check_in_time
+                
+                if active_session.slot and active_session.slot.lot:
+                    vehicle.lot_name = active_session.slot.lot.name
+                    rate = active_session.slot.lot.hourly_rate
+                    vehicle.hourly_rate = rate # Populate the hourly rate
+                    now = datetime.utcnow()
+                    
+                    # 1. Calculate elapsed time
+                    elapsed_duration = (now - active_session.check_in_time).total_seconds()
+                    elapsed_hours = math.ceil(elapsed_duration / 3600) if elapsed_duration > 0 else 1
+                    
+                    # 2. Calculate expected time (commitment)
+                    expected_hours = 0
+                    reservation = None
+                    if active_session.reservation_id:
+                        reservation = db.query(Reservation).filter(Reservation.id == active_session.reservation_id).first()
+                        if reservation and reservation.expected_check_out_time and reservation.expected_check_in_time:
+                            # Use original reservation duration to avoid timezone mismatch issues
+                            reserved_duration = (reservation.expected_check_out_time - reservation.expected_check_in_time).total_seconds()
+                            expected_hours = math.ceil(reserved_duration / 3600)
+                    
+                    elif active_session.expected_check_out_time:
+                        # Direct check-in case: reliable UTC difference
+                        expected_duration = (active_session.expected_check_out_time - active_session.check_in_time).total_seconds()
+                        expected_hours = math.ceil(expected_duration / 3600)
+                    
+                    # 3. Chargeable hours is the greater of the two
+                    chargeable_hours = max(elapsed_hours, expected_hours)
+                    
+                    base_fee = chargeable_hours * rate
+                    vehicle.undiscounted_estimated_fee = base_fee # Populate undiscounted fee
+                    
+                    # Apply discount
+                    if vehicle.user:
+                        discount = vehicle.user.discount_percentage / 100
+                        vehicle.estimated_fee = base_fee * (1 - discount)
+                    else:
+                        vehicle.estimated_fee = base_fee
+
+                    # --- Deduct Pre-payment from Estimate (Remaining Due) ---
+                    # NOTE: We only deduct this for the *estimated* fee shown to user.
+                    # The actual total_fee stored in DB on checkout will be the full amount.
+                    if reservation:
+                        amount_already_paid = reservation.amount_paid if reservation.amount_paid else 0.0
+                        
+                        vehicle.estimated_fee -= amount_already_paid
+                        if vehicle.estimated_fee < 0: vehicle.estimated_fee = 0.0
+                        
+                        # We keep undiscounted_estimated_fee as the "Gross Total Value" for display purposes
+                        # unless you want "Undiscounted Remaining Due". 
+                        # Current frontend logic implies "Total Due" vs "Undiscounted Total Due".
+                        # Let's keep undiscounted as the full value so user sees "Was 500, Paid 100, Due 400".
+                        # But wait, frontend check_out.html shows "Total Due" for estimated_fee.
+                        # If we leave undiscounted as full, it might look weird if we don't clarify.
+                        # Let's leave undiscounted as FULL value, and estimated as REMAINING value.
+
+    return vehicles
+
     return vehicles
 
 @app.post("/api/vehicles", response_model=VehicleSchema, status_code=status.HTTP_201_CREATED)

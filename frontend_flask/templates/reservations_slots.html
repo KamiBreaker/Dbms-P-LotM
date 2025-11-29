@@ -66,17 +66,19 @@
     </div>
 
     <div class="mb-3">
-        <label for="reservation_date" class="form-label">Reservation Date</label>
-        <input type="date" class="form-control" id="reservation_date" name="reservation_date" required>
+        <label for="expected_check_in_time" class="form-label">Expected Check-in Time</label>
+        <input type="text" class="form-control flatpickr-datetime" id="expected_check_in_time" name="expected_check_in_time" placeholder="Select Check-in Date & Time" required>
     </div>
     <div class="mb-3">
-        <label for="expected_check_in_time" class="form-label">Expected Check-in Time (24h)</label>
-        <input type="time" class="form-control" id="expected_check_in_time" name="expected_check_in_time" step="60" required>
+        <label for="expected_check_out_time" class="form-label">Expected Check-out Time</label>
+        <input type="text" class="form-control flatpickr-datetime" id="expected_check_out_time" name="expected_check_out_time" placeholder="Select Check-out Date & Time" required>
     </div>
-    <div class="mb-3">
-        <label for="expected_check_out_time" class="form-label">Expected Check-out Time (24h)</label>
-        <input type="time" class="form-control" id="expected_check_out_time" name="expected_check_out_time" step="60" required>
+
+    <div class="alert alert-info mt-3" id="price-estimation" style="display: none;">
+        Estimated Upfront Payment: <strong><span id="estimated-cost">0.00</span> BDT</strong>
+        <br><small class="text-muted">Rate: {{ lot.hourly_rate }} BDT/hr</small>
     </div>
+
     <div class="slot-grid">
         {% for slot in lot.slots|sort(attribute='slot_number') %}
             <button type="submit" name="slot_id" value="{{ slot.id }}" class="slot-btn status-{{ slot.status }}" {% if slot.status != 'available' %}disabled{% endif %}>
@@ -104,8 +106,54 @@ function toggleLicensePlateInput() {
 
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('reservationForm');
+    const hourlyRate = {{ lot.hourly_rate }};
+    
+    const checkInInput = document.getElementById('expected_check_in_time');
+    const checkOutInput = document.getElementById('expected_check_out_time');
+    const estimationDiv = document.getElementById('price-estimation');
+    const costSpan = document.getElementById('estimated-cost');
+
+    // Initialize Flatpickr
+    flatpickr(".flatpickr-datetime", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        minDate: "today",
+        time_24hr: true
+    });
+
+    function updateEstimation() {
+        const checkInStr = checkInInput.value;
+        const checkOutStr = checkOutInput.value;
+
+        if (checkInStr && checkOutStr) {
+            const checkInDate = new Date(checkInStr);
+            const checkOutDate = new Date(checkOutStr);
+
+            let diffMs = checkOutDate - checkInDate;
+            
+            if (diffMs <= 0) {
+               estimationDiv.style.display = 'none';
+               return;
+            }
+
+            const diffHours = diffMs / (1000 * 60 * 60);
+            let chargeableHours = Math.ceil(diffHours);
+            if (chargeableHours < 1) chargeableHours = 1;
+
+            const estimatedCost = chargeableHours * hourlyRate;
+            
+            costSpan.textContent = estimatedCost.toFixed(2);
+            estimationDiv.style.display = 'block';
+        } else {
+            estimationDiv.style.display = 'none';
+        }
+    }
+
+    checkInInput.addEventListener('change', updateEstimation);
+    checkOutInput.addEventListener('change', updateEstimation);
+
     form.addEventListener('submit', function(event) {
-        // Prevent default form submission
+        // Prevent default form submission for validation and custom handling
         event.preventDefault();
 
         const slotId = event.submitter.value; // Get slot_id from the clicked button
@@ -126,46 +174,38 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const reservationDate = document.getElementById('reservation_date').value;
-        const checkInTime = document.getElementById('expected_check_in_time').value;
-        const checkOutTime = document.getElementById('expected_check_out_time').value;
+        const checkInStr = document.getElementById('expected_check_in_time').value;
+        const checkOutStr = document.getElementById('expected_check_out_time').value;
 
-        // Client-side validation for times
-        if (checkInTime >= checkOutTime) {
-            alert('Expected Check-out Time must be after Expected Check-in Time on the same day.');
-            return; // Stop submission
+        if (!checkInStr || !checkOutStr) {
+            alert('Please select both check-in and check-out times.');
+            return;
         }
 
-        // Combine date and time into ISO format
-        const expectedCheckIn = `${reservationDate}T${checkInTime}:00`;
-        const expectedCheckOut = `${reservationDate}T${checkOutTime}:00`;
+        const checkInDate = new Date(checkInStr);
+        const checkOutDate = new Date(checkOutStr);
 
-        // Create hidden inputs for the combined values
+        // Client-side validation
+        if (checkInDate >= checkOutDate) {
+            alert('Expected Check-out Time must be after Expected Check-in Time.');
+            return; 
+        }
+
+        // Create hidden input for slot_id
         const hiddenSlotId = document.createElement('input');
         hiddenSlotId.type = 'hidden';
         hiddenSlotId.name = 'slot_id';
         hiddenSlotId.value = slotId;
         form.appendChild(hiddenSlotId);
-
-        const hiddenCheckIn = document.createElement('input');
-        hiddenCheckIn.type = 'hidden';
-        hiddenCheckIn.name = 'expected_check_in_time';
-        hiddenCheckIn.value = expectedCheckIn;
-        form.appendChild(hiddenCheckIn);
-
-        const hiddenCheckOut = document.createElement('input');
-        hiddenCheckOut.type = 'hidden';
-        hiddenCheckOut.name = 'expected_check_out_time';
-        hiddenCheckOut.value = expectedCheckOut;
-        form.appendChild(hiddenCheckOut);
-
+        
+        // Create hidden input for license_plate
         const hiddenLicensePlate = document.createElement('input');
         hiddenLicensePlate.type = 'hidden';
         hiddenLicensePlate.name = 'license_plate';
         hiddenLicensePlate.value = licensePlate;
         form.appendChild(hiddenLicensePlate);
 
-        // Now submit the form with the combined values
+        // Submit the form
         form.submit();
     });
 });

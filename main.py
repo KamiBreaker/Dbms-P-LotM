@@ -4,7 +4,8 @@ import sys
 import time
 import signal
 
-# Define project paths
+
+#PP(Project path)
 project_root = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.join(project_root, "backend")
 frontend_dir = os.path.join(project_root, "frontend_flask")

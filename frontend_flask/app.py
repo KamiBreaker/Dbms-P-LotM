@@ -109,7 +109,63 @@ def index():
 @app.route('/dashboard')
 @login_required
 def user_dashboard():
-    return render_template('user_dashboard.html')
+    headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    
+    # Fetch user's active reservations
+    reservations_response = requests.get(f"{FASTAPI_BASE_URL}/api/reservations?status=active", headers=headers)
+    user_reservations = []
+    if reservations_response.ok:
+        all_reservations = reservations_response.json()
+        # Filter for current user
+        user_reservations = [r for r in all_reservations if r['user_id'] == g.user['id']]
+
+    # Fetch active sessions to show current parking status
+    sessions_response = requests.get(f"{FASTAPI_BASE_URL}/api/users/me/sessions", headers=headers)
+    active_session = None
+    if sessions_response.ok:
+        sessions = sessions_response.json()
+        # Find first session with no check_out_time
+        active_session = next((s for s in sessions if s['check_out_time'] is None), None)
+
+    return render_template('user_dashboard.html', reservations=user_reservations, active_session=active_session)
+
+@app.route('/dashboard/check-in/<int:reservation_id>', methods=['POST'])
+@login_required
+def check_in_reservation(reservation_id):
+    headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    
+    # We need the license plate to call vip-check-in.
+    # We can get it from the form (if user entered it) or try to find it from the reservation details if we fetched them.
+    # But for a simple button, we might rely on the reservation having a vehicle.
+    
+    license_plate = request.form.get('license_plate')
+    
+    # If not in form, we might need to fetch reservation to see if it has a vehicle attached?
+    # Or we can just pass what we have. The backend vip_check_in requires license_plate.
+    
+    if not license_plate:
+         # Try to find the reservation in the list (inefficient but works for now without extra DB call)
+         # Actually, let's just fail if not provided, but the UI should handle this.
+         # BETTER: The UI loop knows the license plate if it's in the reservation object.
+         pass
+
+    payload = {
+        "reservation_id": reservation_id,
+        "license_plate": license_plate
+    }
+    
+    response = requests.post(f"{FASTAPI_BASE_URL}/api/vip-check-in", json=payload, headers=headers)
+    
+    if response.ok:
+        flash("Successfully checked in!", "success")
+    else:
+        try:
+            detail = response.json().get('detail', 'Unknown error')
+        except:
+            detail = "An error occurred."
+        flash(f"Check-in failed: {detail}", "danger")
+        
+    return redirect(url_for('user_dashboard'))
 
 @app.route('/admin')
 @login_required
@@ -140,7 +196,7 @@ def admin_dashboard():
                                occupancy_data=occupancy_data,
                                lots_by_area=lots_by_area)
     else:
-        return render_template('user_dashboard.html')
+        return redirect(url_for('user_dashboard'))
 
 @app.route('/admin/feedback')
 @login_required
@@ -229,8 +285,15 @@ def lot_detail(lot_id):
 def history():
     headers = {'Authorization': f'Bearer {session["access_token"]}'}
     
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    params = {}
+    if start_date: params['start_date'] = start_date
+    if end_date: params['end_date'] = end_date
+    
     # Fetch parking sessions
-    sessions_response = requests.get(f"{FASTAPI_BASE_URL}/api/users/me/sessions", headers=headers)
+    sessions_response = requests.get(f"{FASTAPI_BASE_URL}/api/users/me/sessions", headers=headers, params=params)
     if not sessions_response.ok:
         flash("Could not retrieve parking history.", "danger")
         sessions = []
@@ -247,7 +310,9 @@ def history():
     return render_template('history.html', 
                            sessions=sessions, 
                            total_revenue=total_revenue,
-                           fastapi_base_url=FASTAPI_BASE_URL)
+                           fastapi_base_url=FASTAPI_BASE_URL,
+                           start_date=start_date,
+                           end_date=end_date)
 
 # --- New Direct Check-In Workflow ---
 
@@ -256,12 +321,10 @@ def history():
 def check_in_start():
     headers = {'Authorization': f'Bearer {session["access_token"]}'}
     vehicles_response = requests.get(f"{FASTAPI_BASE_URL}/api/vehicles", headers=headers)
-    print(f"DEBUG: vehicles_response status_code: {vehicles_response.status_code}")
-    print(f"DEBUG: vehicles_response text: {vehicles_response.text}")
     
-    vehicles = [] # Initialize vehicles to an empty list
+    vehicles = [] 
     if vehicles_response.ok:
-        vehicles = vehicles_response.json() # Correctly populate vehicles list
+        vehicles = vehicles_response.json() 
     else:
         flash("Could not retrieve vehicles.", "danger")
 
@@ -269,7 +332,7 @@ def check_in_start():
         # Prioritize dropdown selection
         selected_vehicle_lp = request.form.get('selected_license_plate')
         typed_license_plate = request.form.get('typed_license_plate')
-        vehicle_type = request.form.get('vehicle_type') # Get vehicle_type from form
+        vehicle_type = request.form.get('vehicle_type') 
 
         license_plate = selected_vehicle_lp if selected_vehicle_lp else typed_license_plate
         
@@ -340,7 +403,7 @@ def check_in_slots(license_plate, lot_id):
         
         if response.ok:
             flash(f"Vehicle {license_plate} checked in successfully!", "success")
-            return redirect(url_for('admin_dashboard'))
+            return redirect(url_for('index'))
         else:
             print(f"DEBUG: Check-in API response status_code: {response.status_code}")
             print(f"DEBUG: Check-in API response text: {response.text}")
@@ -361,6 +424,48 @@ def check_in_slots(license_plate, lot_id):
 
 
 # --- New Reservation Workflow ---
+
+@app.route('/admin/reservations')
+@login_required
+def admin_reservations():
+    if g.user.get('role') != 'admin':
+        flash("Access denied.", "danger")
+        return redirect(url_for('index'))
+
+    status = request.args.get('status') # active, completed, cancelled, or None (all)
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    user_query = request.args.get('user_query')
+    license_plate = request.args.get('license_plate')
+    area = request.args.get('area')
+
+    headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    
+    params = {}
+    if status: params['status'] = status
+    if start_date: params['start_date'] = start_date
+    if end_date: params['end_date'] = end_date
+    if user_query: params['user_query'] = user_query
+    if license_plate: params['license_plate'] = license_plate
+    if area: params['area'] = area
+    
+    response = requests.get(f"{FASTAPI_BASE_URL}/api/reservations", headers=headers, params=params)
+    reservations = []
+    if response.ok:
+        reservations = response.json()
+    else:
+        flash("Could not fetch reservations.", "warning")
+    
+    return render_template(
+        'admin_reservations.html', 
+        reservations=reservations, 
+        status=status,
+        start_date=start_date,
+        end_date=end_date,
+        user_query=user_query,
+        license_plate=license_plate,
+        area=area
+    )
 
 @app.route('/reservations', methods=['GET', 'POST'])
 @login_required
@@ -407,7 +512,7 @@ def vip_check_in_page():
         
         if response.ok:
             flash(f"Reservation {reservation_id} fulfilled and vehicle checked in!", "success")
-            return redirect(url_for('admin_dashboard'))
+            return redirect(url_for('index'))
         else:
             try:
                 error_detail = response.json().get('detail', 'Unknown error')
@@ -464,7 +569,6 @@ def reservations_slots(user_id, lot_id):
 
     if request.method == 'POST':
         slot_id = request.form.get('slot_id')
-        reservation_date_str = request.form.get('reservation_date')
         expected_check_in_time_str = request.form.get('expected_check_in_time')
         expected_check_out_time_str = request.form.get('expected_check_out_time')
         license_plate = request.form.get('license_plate') # Get selected license plate
@@ -472,13 +576,18 @@ def reservations_slots(user_id, lot_id):
         if not slot_id:
             flash("No slot selected.", "danger")
             return redirect(url_for('reservations_slots', user_id=user_id, lot_id=lot_id))
-        if not reservation_date_str or not expected_check_in_time_str or not expected_check_out_time_str:
+        if not expected_check_in_time_str or not expected_check_out_time_str:
             flash("All reservation date and times are required.", "danger")
             return redirect(url_for('reservations_slots', user_id=user_id, lot_id=lot_id))
 
-        # Combine date and time into ISO format
-        expected_check_in_datetime = f"{reservation_date_str}T{expected_check_in_time_str}:00"
-        expected_check_out_datetime = f"{reservation_date_str}T{expected_check_out_time_str}:00"
+        # Ensure seconds are included for backend consistency
+        def ensure_seconds(dt_str):
+            if len(dt_str) == 16: # Format YYYY-MM-DD HH:MM
+                return dt_str + ":00"
+            return dt_str
+
+        expected_check_in_datetime = ensure_seconds(expected_check_in_time_str)
+        expected_check_out_datetime = ensure_seconds(expected_check_out_time_str)
 
         payload = {
             "user_id": user_id,
@@ -491,7 +600,7 @@ def reservations_slots(user_id, lot_id):
         
         if response.ok:
             flash(f"Slot reserved successfully for user {user_id}!", "success")
-            return redirect(url_for('admin_dashboard'))
+            return redirect(url_for('index'))
         else:
             flash(f"Error making reservation: {response.json().get('detail', 'Unknown error')}", "danger")
             return redirect(url_for('reservations_slots', user_id=user_id, lot_id=lot_id))

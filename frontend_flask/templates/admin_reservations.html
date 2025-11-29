@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">All Reservations</h1>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('admin_reservations') }}" class="row g-3">
+            <input type="hidden" name="status" value="{{ status or '' }}">
+            
+            <div class="col-md-2">
+                <label class="form-label">Start Date</label>
+                <input type="text" class="form-control datepicker" name="start_date" value="{{ start_date or '' }}" placeholder="Start Date">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">End Date</label>
+                <input type="text" class="form-control datepicker" name="end_date" value="{{ end_date or '' }}" placeholder="End Date">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">User</label>
+                <input type="text" class="form-control" name="user_query" placeholder="Name" value="{{ user_query or '' }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">License Plate</label>
+                <input type="text" class="form-control" name="license_plate" placeholder="License" value="{{ license_plate or '' }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Area</label>
+                <input type="text" class="form-control" name="area" placeholder="Area" value="{{ area or '' }}">
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs">
+            <li class="nav-item">
+                <a class="nav-link {% if status == 'active' %}active{% endif %}" href="{{ url_for('admin_reservations', status='active') }}">Active</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if status == 'completed' %}active{% endif %}" href="{{ url_for('admin_reservations', status='completed') }}">Completed</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if status == 'cancelled' %}active{% endif %}" href="{{ url_for('admin_reservations', status='cancelled') }}">Cancelled</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if not status %}active{% endif %}" href="{{ url_for('admin_reservations') }}">All</a>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>User</th>
+                        <th>License Plate</th>
+                        <th>Location</th>
+                        <th>Slot</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if reservations %}
+                        {% for res in reservations %}
+                        <tr>
+                            <td>{{ res.id }}</td>
+                            <td>
+                                <div>{{ res.user.name }}</div>
+                                <small class="text-muted">{{ res.user.username }}</small>
+                            </td>
+                            <td>
+                                {% if res.vehicle %}
+                                    <span class="badge bg-light text-dark border">{{ res.vehicle.license_plate }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ res.slot.lot.area }} - {{ res.slot.lot.name }}</td>
+                            <td><span class="badge bg-primary">{{ res.slot.slot_number }}</span></td>
+                            <td>
+                                {% if res.expected_check_in_time %}
+                                    {{ res.expected_check_in_time.split('T')[0] }} <br> <small>{{ res.expected_check_in_time.split('T')[1][:5] }}</small>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if res.expected_check_out_time %}
+                                    {{ res.expected_check_out_time.split('T')[0] }} <br> <small>{{ res.expected_check_out_time.split('T')[1][:5] }}</small>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if res.status == 'active' %}
+                                    <span class="badge bg-success">Active</span>
+                                {% elif res.status == 'completed' %}
+                                    <span class="badge bg-secondary">Completed</span>
+                                {% elif res.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% else %}
+                                    <span class="badge bg-info">{{ res.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                No reservations found.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        flatpickr(".datepicker", {
+            dateFormat: "Y-m-d",
+            allowInput: true
+        });
+    });
+</script>
+{% endblock %}
