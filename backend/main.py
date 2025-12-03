@@ -395,6 +395,30 @@ async def get_current_admin_user(current_user: User = Depends(get_current_user))
         )
     return current_user
 
+@app.on_event("startup")
+def startup_event():
+    db = SessionLocal()
+    try:
+        # Check if admin exists
+        admin_user = db.query(User).filter(User.name == "admin").first()
+        if not admin_user:
+            print("Creating default admin user...")
+            hashed_password = get_password_hash("1234")
+            admin_user = User(
+                name="admin",
+                hashed_password=hashed_password,
+                role="admin",
+                is_active=True,
+                discount_percentage=0.0
+            )
+            db.add(admin_user)
+            db.commit()
+            print("Admin user created: username='admin', password='1234'")
+    except Exception as e:
+        print(f"Error creating admin user: {e}")
+    finally:
+        db.close()
+
 # --- API Endpoints ---
 @app.get("/")
 def read_root(): return {"message": "Welcome to the Smart Parking Lot System API"}
