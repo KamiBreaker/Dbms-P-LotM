@@ -6,3 +6,4 @@ pydantic
 passlib[argon2]
 python-jose[cryptography]
 python-multipart
+mysqlclient
