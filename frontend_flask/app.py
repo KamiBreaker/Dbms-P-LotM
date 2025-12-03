@@ -205,6 +205,94 @@ def admin_dashboard():
     else:
         return redirect(url_for('user_dashboard'))
 
+@app.route('/admin/manage-lots')
+@login_required
+def admin_manage_lots():
+    if g.user.get('role') != 'admin':
+        flash("Access denied.", "danger")
+        return redirect(url_for('index'))
+    
+    headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    response = requests.get(f"{FASTAPI_BASE_URL}/api/lots", headers=headers)
+    lots = response.json() if response.ok else []
+    
+    return render_template('admin_manage_lots.html', lots=lots)
+
+@app.route('/admin/add-lot', methods=['POST'])
+@login_required
+def add_parking_lot():
+    if g.user.get('role') != 'admin':
+        flash("Access denied.", "danger")
+        return redirect(url_for('index'))
+        
+    name = request.form.get('name')
+    area = request.form.get('area')
+    hourly_rate = request.form.get('hourly_rate')
+    
+    if not all([name, area, hourly_rate]):
+        flash("All fields are required.", "danger")
+        return redirect(url_for('admin_manage_lots'))
+        
+    try:
+        hourly_rate = float(hourly_rate)
+    except ValueError:
+        flash("Invalid hourly rate.", "danger")
+        return redirect(url_for('admin_manage_lots'))
+        
+    headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    payload = {
+        "name": name,
+        "area": area,
+        "hourly_rate": hourly_rate
+    }
+    
+    response = requests.post(f"{FASTAPI_BASE_URL}/api/lots", json=payload, headers=headers)
+    
+    if response.ok:
+        flash(f"Parking Lot '{name}' created successfully!", "success")
+    else:
+        try:
+            detail = response.json().get('detail', 'Unknown error')
+        except:
+            detail = "Unknown error"
+        flash(f"Error creating lot: {detail}", "danger")
+        
+    return redirect(url_for('admin_manage_lots'))
+
+@app.route('/admin/manage-lots/<int:lot_id>/add-slot', methods=['POST'])
+@login_required
+def add_slot_to_lot(lot_id):
+    if g.user.get('role') != 'admin':
+        flash("Access denied.", "danger")
+        return redirect(url_for('index'))
+
+    slot_number = request.form.get('slot_number')
+    slot_type = request.form.get('slot_type')
+    
+    if not slot_number:
+        flash("Slot number is required.", "danger")
+        return redirect(url_for('admin_manage_lots'))
+
+    headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    payload = {
+        "lot_id": lot_id,
+        "slot_number": slot_number,
+        "slot_type": slot_type
+    }
+    
+    response = requests.post(f"{FASTAPI_BASE_URL}/api/slots", json=payload, headers=headers)
+    
+    if response.ok:
+        flash(f"Slot {slot_number} added successfully!", "success")
+    else:
+        try:
+            detail = response.json().get('detail', 'Unknown error')
+        except:
+            detail = "Unknown error"
+        flash(f"Error adding slot: {detail}", "danger")
+        
+    return redirect(url_for('admin_manage_lots'))
+
 @app.route('/admin/feedback')
 @login_required
 def admin_feedback():

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Manage Parking Lots</h2>
+    
+    <!-- Add New Lot Card -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <i class="fas fa-plus-circle me-2"></i> Add New Parking Lot
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('add_parking_lot') }}" method="POST">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="name" class="form-label">Lot Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required placeholder="e.g. Central Mall">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="area" class="form-label">Area / Location</label>
+                        <input type="text" class="form-control" id="area" name="area" required placeholder="e.g. Downtown">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="hourly_rate" class="form-label">Hourly Rate (৳)</label>
+                        <input type="number" step="0.01" class="form-control" id="hourly_rate" name="hourly_rate" required value="100">
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success w-100">Add</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Lots List -->
+    <h3>Existing Parking Lots</h3>
+    {% if lots %}
+    <div class="row">
+        {% for lot in lots %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ lot.name }}</h5>
+                    <span class="badge bg-info text-dark">{{ lot.area }}</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Hourly Rate:</strong> ৳{{ lot.hourly_rate }}</p>
+                    <p><strong>Total Slots:</strong> {{ lot.slots|length }}</p>
+                    
+                    <hr>
+                    <h6>Add Slot</h6>
+                    <form action="{{ url_for('add_slot_to_lot', lot_id=lot.id) }}" method="POST" class="row g-2 align-items-center">
+                        <div class="col-auto">
+                            <input type="text" class="form-control form-control-sm" name="slot_number" placeholder="Slot No (e.g. A-1)" required>
+                        </div>
+                        <div class="col-auto">
+                            <select class="form-select form-select-sm" name="slot_type">
+                                <option value="regular">Regular</option>
+                                <option value="vip">VIP</option>
+                                <option value="handicap">Handicap</option>
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Add</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-muted small">
+                    ID: {{ lot.id }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        No parking lots found. Use the form above to create one.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
