@@ -397,6 +397,9 @@ async def get_current_admin_user(current_user: User = Depends(get_current_user))
 
 @app.on_event("startup")
 def startup_event():
+    # Create tables if they don't exist
+    Base.metadata.create_all(bind=engine)
+    
     db = SessionLocal()
     try:
         # Check if admin exists
