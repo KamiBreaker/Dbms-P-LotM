@@ -13,7 +13,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 
 # --- Security, Hashing & JWT ---
-SECRET_KEY = "a_very_secret_key_for_development" # In a real app, load this from config
+SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_for_development")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -21,7 +21,8 @@ pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # --- Database Configuration ---
-DATABASE_URL = "mysql+mysqlconnector://root:12345678@localhost/parking_lot_db"
+# Default to local dev settings if not set in environment
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+mysqlconnector://root:12345678@localhost/parking_lot_db")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

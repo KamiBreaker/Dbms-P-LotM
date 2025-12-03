@@ -13,7 +13,8 @@ TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
 STATIC_DIR = os.path.join(BASE_DIR, 'static')
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
-app.secret_key = os.urandom(24) # Secret key for flashing messages
+# Secret key for flashing messages and sessions. In production, set this via environment variable.
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "super_secret_flask_key_dev_mode")
 
 # Configuration for FastAPI backend
 FASTAPI_BASE_URL = os.getenv("FASTAPI_BASE_URL", "http://127.0.0.1:8000")
