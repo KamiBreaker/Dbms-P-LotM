@@ -1,7 +1,7 @@
 import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from main import User, Vehicle, ParkingSession, ParkingLot, ParkingSlot, Reservation, Penalty, Base
+from p import User, Vehicle, ParkingSession, ParkingLot, ParkingSlot, Reservation, Penalty, Base
 
 print("--- Starting Data Backup ---")
 

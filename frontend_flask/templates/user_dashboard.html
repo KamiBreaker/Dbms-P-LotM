@@ -10,7 +10,43 @@
     <div class="card-body">
         <p class="card-text"><strong>Total Check-outs:</strong> {{ g.user.total_activities }}</p>
         <p class="card-text"><strong>Discount Level:</strong> {{ "%.2f"|format(g.user.discount_percentage) }}%</p>
+        <p class="card-text"><strong>Wallet Balance:</strong> ৳{{ "%.2f"|format(g.user.balance|default(0.0)) }}</p>
+        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#requestTopUpModal">
+            Request Top-Up
+        </button>
+        <a href="{{ url_for('user_top_up_history') }}" class="btn btn-info btn-sm">Transaction History</a>
     </div>
+</div>
+
+<!-- Request Top-Up Modal -->
+<div class="modal fade" id="requestTopUpModal" tabindex="-1" aria-labelledby="requestTopUpModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('request_top_up') }}">
+          <div class="modal-header">
+            <h5 class="modal-title" id="requestTopUpModalLabel">Request Balance Top-Up</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+                <label for="amount" class="form-label">Amount (৳)</label>
+                <input type="number" class="form-control" id="amount" name="amount" min="1" step="0.01" required>
+            </div>
+            <div class="mb-3">
+                <label for="payment_method" class="form-label">Payment Method</label>
+                <select class="form-select" id="payment_method" name="payment_method" required>
+                    <option value="bkash">Bkash</option>
+                    <option value="card">Credit/Debit Card</option>
+                </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Submit Request</button>
+          </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <div class="card mb-4">

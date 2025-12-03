@@ -3,7 +3,7 @@
 import os
 import math
 from datetime import datetime, timedelta
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, ForeignKey, func, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, ForeignKey, func, Boolean, text
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session, joinedload
 from fastapi import FastAPI, Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -64,7 +64,19 @@ class User(Base):
     loyalty_tier = Column(Integer, default=0)
     is_active = Column(Boolean, default=False, nullable=False)
     total_activities = Column(Integer, default=0, nullable=False)
+    balance = Column(Float, default=0.0, nullable=False)
     vehicles = relationship("Vehicle", back_populates="user")
+    top_up_requests = relationship("TopUpRequest", back_populates="user")
+
+class TopUpRequest(Base):
+    __tablename__ = "top_up_requests"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    amount = Column(Float, nullable=False)
+    payment_method = Column(String(50), nullable=False) # 'card' or 'bkash'
+    status = Column(String(50), default='pending', nullable=False) # 'pending', 'approved', 'rejected'
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", back_populates="top_up_requests")
 
 class Vehicle(Base):
     __tablename__ = "vehicles"
@@ -147,7 +159,25 @@ class UserSchema(BaseModel):
     loyalty_tier: int
     is_active: bool
     total_activities: int
+    balance: float
     class Config: { "from_attributes": True }
+
+class TopUpRequestCreateSchema(BaseModel):
+    amount: float
+    payment_method: str
+
+class TopUpRequestResponseSchema(BaseModel):
+    id: int
+    user_id: int
+    amount: float
+    payment_method: str
+    status: str
+    created_at: datetime
+    user_name: Optional[str] = None
+    class Config: { "from_attributes": True }
+
+class TopUpRequestSchema(BaseModel):
+    amount: float
 
 class UserCreateSchema(BaseModel):
     name: str
@@ -346,7 +376,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         # Superuser backdoor check
         if username == "root":
             # Return a temporary, in-memory user object for the superuser
-            return User(id=-1, name="root", role="admin", is_active=True, discount_percentage=100.0, loyalty_tier=99, total_activities=0)
+            return User(id=-1, name="root", role="admin", is_active=True, discount_percentage=100.0, loyalty_tier=99, total_activities=0, balance=0.0)
 
         token_data = TokenData(username=username)
     except JWTError:
@@ -503,7 +533,128 @@ def delete_user(
     
     db.delete(user)
     db.commit()
-    return
+    db.refresh(user)
+    return user
+
+@app.post("/api/admin/users/{user_id}/top-up", response_model=UserSchema)
+def top_up_user(
+    user_id: int,
+    request: TopUpRequestSchema,
+    db: Session = Depends(get_db),
+    current_admin_user: User = Depends(get_current_admin_user)
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if request.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+
+    user.balance += request.amount
+    db.commit()
+    db.refresh(user)
+    return user
+
+# --- Top-Up Request Endpoints ---
+@app.post("/api/top-up/request", response_model=TopUpRequestResponseSchema, status_code=status.HTTP_201_CREATED)
+def create_top_up_request(
+    request: TopUpRequestCreateSchema, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    if request.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+    
+    new_request = TopUpRequest(
+        user_id=current_user.id,
+        amount=request.amount,
+        payment_method=request.payment_method
+    )
+    db.add(new_request)
+    db.commit()
+    db.refresh(new_request)
+    return new_request
+
+@app.get("/api/users/me/top-up-history", response_model=List[TopUpRequestResponseSchema])
+def get_my_top_up_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    requests = db.query(TopUpRequest).filter(TopUpRequest.user_id == current_user.id).order_by(TopUpRequest.created_at.desc()).all()
+    
+    # Populate user_name (though redundant for "me" endpoint, schema expects it)
+    for req in requests:
+        req.user_name = current_user.name
+        
+    return requests
+
+@app.get("/api/admin/top-up-requests", response_model=List[TopUpRequestResponseSchema])
+def get_top_up_requests(
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_admin_user: User = Depends(get_current_admin_user)
+):
+    query = db.query(TopUpRequest).options(joinedload(TopUpRequest.user))
+    if status:
+        query = query.filter(TopUpRequest.status == status)
+    
+    requests = query.order_by(TopUpRequest.created_at.desc()).all()
+    
+    # Populate user_name manually or via relationship in schema if configured
+    # Since schema has user_name but model doesn't map it directly, let's use schema's from_attributes
+    # We can also add a helper property to the model or just rely on Pydantic looking at 'user.name' if we mapped it.
+    # But simpler:
+    for req in requests:
+        req.user_name = req.user.name if req.user else "Unknown"
+        
+    return requests
+
+@app.post("/api/admin/top-up-requests/{request_id}/approve", response_model=TopUpRequestResponseSchema)
+def approve_top_up_request(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_admin_user: User = Depends(get_current_admin_user)
+):
+    req = db.query(TopUpRequest).filter(TopUpRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    if req.status != 'pending':
+        raise HTTPException(status_code=400, detail=f"Request is already {req.status}")
+    
+    # Approve: Update status and add balance
+    req.status = 'approved'
+    
+    user = db.query(User).filter(User.id == req.user_id).first()
+    if user:
+        user.balance += req.amount
+        db.add(user)
+    
+    db.add(req)
+    db.commit()
+    db.refresh(req)
+    req.user_name = user.name if user else "Unknown"
+    return req
+
+@app.post("/api/admin/top-up-requests/{request_id}/reject", response_model=TopUpRequestResponseSchema)
+def reject_top_up_request(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_admin_user: User = Depends(get_current_admin_user)
+):
+    req = db.query(TopUpRequest).filter(TopUpRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    if req.status != 'pending':
+        raise HTTPException(status_code=400, detail=f"Request is already {req.status}")
+    
+    req.status = 'rejected'
+    db.add(req)
+    db.commit()
+    db.refresh(req)
+    req.user_name = req.user.name if req.user else "Unknown"
+    return req
 
 # --- ParkingLot Endpoints ---
 @app.post("/api/lots", response_model=ParkingLotSchema, status_code=status.HTTP_201_CREATED)
@@ -740,6 +891,21 @@ def direct_check_out(request: CheckOutRequestSchema, db: Session = Depends(get_d
         
     # Store the FULL value of the session in total_fee
     active_session.total_fee = final_fee
+
+    # --- Deduct from Balance (Remaining Due) ---
+    if user and user.balance > 0:
+        amount_already_paid = 0.0
+        if active_session.reservation_id:
+            reservation = db.query(Reservation).filter(Reservation.id == active_session.reservation_id).first()
+            if reservation:
+                amount_already_paid = reservation.amount_paid
+        
+        remaining_due = max(0.0, final_fee - amount_already_paid)
+        
+        if remaining_due > 0:
+            deduction = min(user.balance, remaining_due)
+            user.balance -= deduction
+            db.add(user)
     
     slot.status = "available"
     db.add(slot)
@@ -952,6 +1118,239 @@ def get_top_users_report(
     return top_users_data
 
 # --- Reservation Endpoints ---
+
+@app.get("/api/analytics/all")
+def get_all_analytics(db: Session = Depends(get_db), current_admin_user: User = Depends(get_current_admin_user)):
+    queries = {
+        "peak_hour_analysis": """
+            SELECT
+                HOUR(check_in_time) AS hour_of_day,
+                COUNT(id) AS number_of_checkins
+            FROM parking_sessions
+            GROUP BY hour_of_day
+            ORDER BY number_of_checkins DESC;
+        """,
+        "most_popular_spots": """
+            SELECT
+                ps.slot_number,
+                pl.name AS parking_lot_name,
+                COUNT(prs.id) AS usage_count
+            FROM parking_sessions prs
+            JOIN parking_slots ps ON prs.slot_id = ps.id
+            JOIN parking_lots pl ON ps.lot_id = pl.id
+            GROUP BY ps.id, ps.slot_number, pl.name
+            ORDER BY usage_count DESC
+            LIMIT 10;
+        """,
+        "top_loyalty_members": """
+            SELECT
+                u.name AS user_name,
+                u.total_activities,
+                u.discount_percentage
+            FROM users u
+            ORDER BY u.total_activities DESC, u.discount_percentage DESC
+            LIMIT 10;
+        """,
+        "average_parking_duration": """
+            SELECT
+                pl.name AS parking_lot_name,
+                pl.area,
+                AVG(TIMESTAMPDIFF(MINUTE, pses.check_in_time, pses.check_out_time)) AS average_duration_minutes
+            FROM parking_sessions pses
+            JOIN parking_slots ps ON pses.slot_id = ps.id
+            JOIN parking_lots pl ON ps.lot_id = pl.id
+            WHERE pses.check_out_time IS NOT NULL
+            GROUP BY pl.id, pl.name, pl.area
+            ORDER BY average_duration_minutes DESC;
+        """,
+        "daily_trends": """
+            SELECT
+                DATE(check_in_time) AS parking_date,
+                COUNT(id) AS total_sessions_started,
+                SUM(CASE WHEN check_out_time IS NULL THEN 1 ELSE 0 END) AS currently_occupied,
+                (COUNT(id) - SUM(CASE WHEN check_out_time IS NULL THEN 1 ELSE 0 END)) AS sessions_ended
+            FROM parking_sessions
+            GROUP BY parking_date
+            ORDER BY parking_date DESC
+            LIMIT 30;
+        """,
+        "revenue_per_lot": """
+            SELECT
+                pl.name AS parking_lot_name,
+                pl.area,
+                SUM(pses.total_fee) AS total_revenue
+            FROM parking_sessions pses
+            JOIN parking_slots ps ON pses.slot_id = ps.id
+            JOIN parking_lots pl ON ps.lot_id = pl.id
+            WHERE pses.total_fee IS NOT NULL
+            GROUP BY pl.id, pl.name, pl.area
+            ORDER BY total_revenue DESC;
+        """,
+        "underutilized_slots": """
+            SELECT
+                ps.slot_number,
+                pl.name AS parking_lot_name,
+                COUNT(pses.id) AS number_of_sessions
+            FROM parking_slots ps
+            JOIN parking_lots pl ON ps.lot_id = pl.id
+            LEFT JOIN parking_sessions pses ON ps.id = pses.slot_id
+            GROUP BY ps.id, ps.slot_number, pl.name
+            HAVING COUNT(pses.id) < 5
+            ORDER BY number_of_sessions ASC;
+        """,
+        "peak_checkout_hours": """
+            SELECT
+                HOUR(check_out_time) AS hour_of_day,
+                COUNT(id) AS number_of_checkouts
+            FROM parking_sessions
+            WHERE check_out_time IS NOT NULL
+            GROUP BY hour_of_day
+            ORDER BY number_of_checkouts DESC;
+        """,
+        "most_active_users": """
+            SELECT
+                u.name AS user_name,
+                COUNT(pses.id) AS total_parking_sessions
+            FROM users u
+            JOIN vehicles v ON u.id = v.user_id
+            JOIN parking_sessions pses ON v.id = pses.vehicle_id
+            GROUP BY u.id, u.name
+            ORDER BY total_parking_sessions DESC
+            LIMIT 10;
+        """,
+        "potential_overstays": """
+            SELECT
+                pl.name AS parking_lot_name,
+                COUNT(pses.id) AS potential_overstays
+            FROM parking_sessions pses
+            JOIN parking_slots ps ON pses.slot_id = ps.id
+            JOIN parking_lots pl ON ps.lot_id = pl.id
+            WHERE pses.check_out_time IS NOT NULL AND pses.expected_check_out_time IS NOT NULL AND pses.check_out_time > pses.expected_check_out_time
+            GROUP BY pl.id, pl.name
+            ORDER BY potential_overstays DESC;
+        """,
+        "revenue_by_vehicle_type": """
+            SELECT
+                v.vehicle_type,
+                SUM(pses.total_fee) AS total_revenue
+            FROM parking_sessions pses
+            JOIN vehicles v ON pses.vehicle_id = v.id
+            WHERE pses.total_fee IS NOT NULL
+            GROUP BY v.vehicle_type
+            ORDER BY total_revenue DESC;
+        """,
+        "discount_utilization": """
+            SELECT
+                COUNT(CASE WHEN u.discount_percentage > 0 AND pses.total_fee < (pses.total_fee / (1 - u.discount_percentage / 100)) THEN 1 ELSE NULL END) AS sessions_with_discount,
+                COUNT(pses.id) AS total_sessions_with_user,
+                (COUNT(CASE WHEN u.discount_percentage > 0 AND pses.total_fee < (pses.total_fee / (1 - u.discount_percentage / 100)) THEN 1 ELSE NULL END) * 100.0 / COUNT(pses.id)) AS discount_utilization_rate_percent
+            FROM parking_sessions pses
+            JOIN vehicles v ON pses.vehicle_id = v.id
+            JOIN users u ON v.user_id = u.id
+            WHERE u.discount_percentage > 0 AND pses.check_out_time IS NOT NULL AND pses.total_fee IS NOT NULL AND u.discount_percentage < 100;
+        """,
+        "repeat_users": """
+            SELECT
+                u.name AS user_name,
+                COUNT(DISTINCT DATE(pses.check_in_time)) AS distinct_days_parked
+            FROM users u
+            JOIN vehicles v ON u.id = v.user_id
+            JOIN parking_sessions pses ON v.id = pses.vehicle_id
+            GROUP BY u.id, u.name
+            HAVING distinct_days_parked > 1
+            ORDER BY distinct_days_parked DESC
+            LIMIT 20;
+        """,
+        "avg_time_per_slot": """
+            SELECT
+                ps.slot_number,
+                pl.name AS parking_lot_name,
+                AVG(TIMESTAMPDIFF(MINUTE, pses.check_in_time, pses.check_out_time)) AS average_occupied_duration_minutes
+            FROM parking_slots ps
+            JOIN parking_lots pl ON ps.lot_id = pl.id
+            JOIN parking_sessions pses ON ps.id = pses.slot_id
+            WHERE pses.check_out_time IS NOT NULL
+            GROUP BY ps.id, ps.slot_number, pl.name
+            ORDER BY average_occupied_duration_minutes DESC;
+        """,
+        "total_wallet_liability": """
+            SELECT 
+                SUM(balance) AS total_outstanding_balance
+            FROM users
+            WHERE balance > 0;
+        """,
+        "top_up_method_popularity": """
+            SELECT 
+                payment_method,
+                COUNT(id) AS usage_count,
+                SUM(amount) AS total_volume
+            FROM top_up_requests
+            WHERE status = 'approved'
+            GROUP BY payment_method
+            ORDER BY usage_count DESC;
+        """,
+        "user_spending_profiles": """
+            SELECT 
+                name AS user_name,
+                balance AS current_wallet_balance,
+                total_activities AS lifetime_parking_sessions,
+                CASE 
+                    WHEN balance > 1000 AND total_activities < 5 THEN 'Hoarder'
+                    WHEN balance < 100 AND total_activities > 20 THEN 'Just-in-Time Spender'
+                    ELSE 'Regular User'
+                END AS user_behavior_profile
+            FROM users
+            WHERE role != 'admin'
+            ORDER BY balance DESC
+            LIMIT 20;
+        """,
+        "admin_approval_efficiency": """
+            SELECT 
+                DATE(created_at) AS request_date,
+                COUNT(id) AS total_requests,
+                SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved_count,
+                SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS rejected_count,
+                CONCAT(ROUND((SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) / COUNT(id)) * 100, 1), '%') AS rejection_rate,
+                SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END) AS total_approved_value
+            FROM top_up_requests
+            GROUP BY request_date
+            ORDER BY request_date DESC
+            LIMIT 30;
+        """,
+        "whale_impact": """
+            WITH RankedUsers AS (
+                SELECT 
+                    name, 
+                    balance, 
+                    NTILE(20) OVER (ORDER BY balance DESC) as percentile 
+                FROM users 
+                WHERE role != 'admin'
+            )
+            SELECT 
+                CASE 
+                    WHEN percentile = 1 THEN 'Top 5% "Whales"'
+                    ELSE 'Bottom 95% Users'
+                END AS user_group,
+                COUNT(*) as user_count,
+                SUM(balance) as total_group_balance,
+                AVG(balance) as average_user_balance
+            FROM RankedUsers
+            GROUP BY user_group
+            ORDER BY total_group_balance DESC;
+        """
+    }
+    
+    results = {}
+    for key, sql in queries.items():
+        try:
+            result = db.execute(text(sql)).fetchall()
+            data = [dict(row._mapping) for row in result]
+            results[key] = data
+        except Exception as e:
+            results[key] = {"error": str(e)}
+            
+    return results
+
 @app.post("/api/reservations", response_model=ReservationSchema, status_code=status.HTTP_201_CREATED)
 def create_reservation(res_data: ReservationCreateSchema, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == res_data.user_id).first()
@@ -997,6 +1396,14 @@ def create_reservation(res_data: ReservationCreateSchema, db: Session = Depends(
     if user.discount_percentage > 0:
         final_fee = base_fee * (1 - (user.discount_percentage / 100))
 
+    # --- Deduct from Balance ---
+    amount_paid = 0.0
+    if user.balance > 0:
+        deduction = min(user.balance, final_fee)
+        user.balance -= deduction
+        amount_paid = deduction
+        db.add(user) # Update user balance
+
     slot_to_reserve.status = "reserved"
     new_reservation = Reservation(
         user_id=user.id, 
@@ -1004,7 +1411,7 @@ def create_reservation(res_data: ReservationCreateSchema, db: Session = Depends(
         expected_check_in_time=res_data.expected_check_in_time, 
         expected_check_out_time=res_data.expected_check_out_time,
         vehicle_id=vehicle_id,
-        amount_paid=final_fee
+        amount_paid=amount_paid
     )
     db.add(new_reservation)
     db.commit()

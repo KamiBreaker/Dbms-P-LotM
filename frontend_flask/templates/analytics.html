@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h2 class="mb-4"><i class="fas fa-chart-line me-2 text-primary"></i>Advanced Analytics Dashboard</h2>
+    
+    {% if not data %}
+    <div class="alert alert-warning">No data available for analytics.</div>
+    {% else %}
+
+    <!-- Row 1: Key Metrics -->
+    <div class="row mb-4">
+        <!-- 16. Total Wallet Balance Liability -->
+        <div class="col-md-3">
+            <div class="card text-white bg-primary mb-3 h-100">
+                <div class="card-header">Total Wallet Liability</div>
+                <div class="card-body">
+                    <h3 class="card-title">৳ {{ "%.2f"|format(data.total_wallet_liability[0].total_outstanding_balance or 0) }}</h3>
+                    <p class="card-text">Funds held in user wallets.</p>
+                </div>
+            </div>
+        </div>
+        <!-- 13. Discount Utilization Rate -->
+        <div class="col-md-3">
+            <div class="card text-white bg-success mb-3 h-100">
+                <div class="card-header">Discount Utilization</div>
+                <div class="card-body">
+                    {% if data.discount_utilization and data.discount_utilization[0] %}
+                    <h3 class="card-title">{{ "%.1f"|format(data.discount_utilization[0].discount_utilization_rate_percent or 0) }}%</h3>
+                    <p class="card-text">{{ data.discount_utilization[0].sessions_with_discount }} / {{ data.discount_utilization[0].total_sessions_with_user }} sessions</p>
+                    {% else %}
+                    <h3 class="card-title">0.0%</h3>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+         <!-- 12. Top Revenue Vehicle -->
+         <div class="col-md-3">
+            <div class="card text-white bg-info mb-3 h-100">
+                <div class="card-header">Top Revenue Vehicle Type</div>
+                <div class="card-body">
+                    {% if data.revenue_by_vehicle_type and data.revenue_by_vehicle_type[0] %}
+                    <h3 class="card-title">{{ data.revenue_by_vehicle_type[0].vehicle_type }}</h3>
+                    <p class="card-text">৳ {{ "%.2f"|format(data.revenue_by_vehicle_type[0].total_revenue or 0) }}</p>
+                    {% else %}
+                    <h3 class="card-title">-</h3>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 2: Peak Hours & Popular Spots -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">1. Peak Hour Analysis (Check-Ins)</div>
+                <div class="card-body">
+                    <canvas id="peakHourChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">2. Most Popular Parking Spots</div>
+                <div class="card-body">
+                    <canvas id="popularSpotsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 3: Daily Trends & Revenue per Lot -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header">5. Daily Occupancy Trends (Last 30 Days)</div>
+                <div class="card-body">
+                    <canvas id="dailyTrendsChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">6. Revenue per Parking Lot</div>
+                <div class="card-body">
+                    <canvas id="revenueLotChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 4: Top Users Tables -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">3. Top Loyalty Members</div>
+                <div class="card-body table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr><th>User</th><th>Activities</th><th>Discount</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for user in data.top_loyalty_members %}
+                            <tr>
+                                <td>{{ user.user_name }}</td>
+                                <td>{{ user.total_activities }}</td>
+                                <td>{{ user.discount_percentage }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">10. Most Active Users (Sessions)</div>
+                <div class="card-body table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr><th>User</th><th>Sessions</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for user in data.most_active_users %}
+                            <tr>
+                                <td>{{ user.user_name }}</td>
+                                <td>{{ user.total_parking_sessions }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     <!-- Row 5: Average Duration & Peak Checkout -->
+     <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">4. Average Parking Duration (by Lot)</div>
+                <div class="card-body">
+                    <canvas id="avgDurationChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">8. Peak Check-Out Hours</div>
+                <div class="card-body">
+                    <canvas id="peakCheckoutChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 6: Underutilized & Overstays -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+             <div class="card h-100">
+                <div class="card-header">7. Underutilized Slots (Less than 5 sessions)</div>
+                <div class="card-body table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr><th>Slot</th><th>Lot</th><th>Sessions</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for slot in data.underutilized_slots[:10] %}
+                            <tr>
+                                <td>{{ slot.slot_number }}</td>
+                                <td>{{ slot.parking_lot_name }}</td>
+                                <td>{{ slot.number_of_sessions }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">11. Potential Overstays</div>
+                <div class="card-body">
+                     <canvas id="overstaysChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 7: Admin Efficiency & Top Up Methods -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header">19. Admin Approval Efficiency</div>
+                <div class="card-body">
+                     <canvas id="adminEfficiencyChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+             <div class="card h-100">
+                <div class="card-header">17. Top-Up Method Popularity</div>
+                <div class="card-body">
+                     <canvas id="topUpMethodChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 8: User Behavior Profiles & Whales -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">18. User Behavior Profiles</div>
+                <div class="card-body table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr><th>User</th><th>Balance</th><th>Profile</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for user in data.user_spending_profiles[:10] %}
+                            <tr>
+                                <td>{{ user.user_name }}</td>
+                                <td>৳{{ "%.2f"|format(user.current_wallet_balance) }}</td>
+                                <td><span class="badge bg-secondary">{{ user.user_behavior_profile }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                 <div class="card-header">20. Whale Impact (Top 5% Users)</div>
+                 <div class="card-body">
+                      <canvas id="whaleChart"></canvas>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 9: Repeat Users & Avg Time per Slot -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+             <div class="card h-100">
+                <div class="card-header">14. Repeat Users (Multiday Parkers)</div>
+                <div class="card-body table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr><th>User</th><th>Distinct Days Parked</th></tr>
+                        </thead>
+                        <tbody>
+                             {% for user in data.repeat_users %}
+                            <tr>
+                                <td>{{ user.user_name }}</td>
+                                <td>{{ user.distinct_days_parked }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+         <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">15. Average Time per Slot (Top 10)</div>
+                <div class="card-body">
+                     <canvas id="slotTimeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Helper function to create charts safely
+    function createChart(ctxId, config) {
+        const ctx = document.getElementById(ctxId);
+        if (ctx) {
+            new Chart(ctx, config);
+        }
+    }
+
+    const analyticsData = {{ data | tojson }};
+    
+    if (analyticsData) {
+        // 1. Peak Hour Analysis
+        const peakHourData = analyticsData.peak_hour_analysis;
+        createChart('peakHourChart', {
+            type: 'bar',
+            data: {
+                labels: peakHourData.map(d => d.hour_of_day + ":00"),
+                datasets: [{
+                    label: 'Number of Check-ins',
+                    data: peakHourData.map(d => d.number_of_checkins),
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)'
+                }]
+            }
+        });
+
+        // 2. Popular Spots
+        const popularSpotsData = analyticsData.most_popular_spots;
+        createChart('popularSpotsChart', {
+            type: 'bar',
+            data: {
+                labels: popularSpotsData.map(d => d.slot_number + ' (' + d.parking_lot_name + ')'),
+                datasets: [{
+                    label: 'Usage Count',
+                    data: popularSpotsData.map(d => d.usage_count),
+                    backgroundColor: 'rgba(255, 206, 86, 0.6)'
+                }]
+            },
+            options: { indexAxis: 'y' }
+        });
+
+        // 5. Daily Trends
+        const dailyData = analyticsData.daily_trends.reverse(); // Chronological
+        createChart('dailyTrendsChart', {
+            type: 'line',
+            data: {
+                labels: dailyData.map(d => d.parking_date),
+                datasets: [
+                    {
+                        label: 'Sessions Started',
+                        data: dailyData.map(d => d.total_sessions_started),
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Occupied at End of Day',
+                        data: dailyData.map(d => d.currently_occupied),
+                        borderColor: 'rgb(255, 99, 132)',
+                        borderDash: [5, 5],
+                        tension: 0.1
+                    }
+                ]
+            }
+        });
+
+        // 6. Revenue per Lot
+        const revLotData = analyticsData.revenue_per_lot;
+        createChart('revenueLotChart', {
+            type: 'doughnut',
+            data: {
+                labels: revLotData.map(d => d.parking_lot_name),
+                datasets: [{
+                    data: revLotData.map(d => d.total_revenue),
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)',
+                        'rgba(255, 206, 86, 0.6)', 'rgba(75, 192, 192, 0.6)',
+                        'rgba(153, 102, 255, 0.6)'
+                    ]
+                }]
+            }
+        });
+
+        // 4. Avg Duration
+        const avgDurData = analyticsData.average_parking_duration;
+        createChart('avgDurationChart', {
+            type: 'bar',
+            data: {
+                labels: avgDurData.map(d => d.parking_lot_name),
+                datasets: [{
+                    label: 'Avg Duration (Minutes)',
+                    data: avgDurData.map(d => d.average_duration_minutes),
+                    backgroundColor: 'rgba(153, 102, 255, 0.6)'
+                }]
+            }
+        });
+
+        // 8. Peak Checkout
+        const peakOutData = analyticsData.peak_checkout_hours;
+        createChart('peakCheckoutChart', {
+            type: 'line',
+            data: {
+                labels: peakOutData.map(d => d.hour_of_day + ":00"),
+                datasets: [{
+                    label: 'Number of Check-outs',
+                    data: peakOutData.map(d => d.number_of_checkouts),
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    fill: true,
+                    backgroundColor: 'rgba(255, 159, 64, 0.2)'
+                }]
+            }
+        });
+
+        // 11. Potential Overstays
+        const overData = analyticsData.potential_overstays;
+        createChart('overstaysChart', {
+            type: 'bar',
+            data: {
+                labels: overData.map(d => d.parking_lot_name),
+                datasets: [{
+                    label: 'Overstay Incidents',
+                    data: overData.map(d => d.potential_overstays),
+                    backgroundColor: 'rgba(255, 99, 132, 0.8)'
+                }]
+            }
+        });
+
+        // 19. Admin Efficiency
+        const adminEffData = analyticsData.admin_approval_efficiency.reverse();
+        createChart('adminEfficiencyChart', {
+            type: 'bar',
+            data: {
+                labels: adminEffData.map(d => d.request_date),
+                datasets: [
+                    {
+                        label: 'Approved',
+                        data: adminEffData.map(d => d.approved_count),
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                        stack: 'Stack 0'
+                    },
+                    {
+                        label: 'Rejected',
+                        data: adminEffData.map(d => d.rejected_count),
+                        backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                        stack: 'Stack 0'
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    x: { stacked: true },
+                    y: { stacked: true }
+                }
+            }
+        });
+
+        // 17. Top Up Method
+        const methodData = analyticsData.top_up_method_popularity;
+        createChart('topUpMethodChart', {
+            type: 'pie',
+            data: {
+                labels: methodData.map(d => d.payment_method),
+                datasets: [{
+                    data: methodData.map(d => d.usage_count),
+                    backgroundColor: ['#e91e63', '#3f51b5']
+                }]
+            }
+        });
+
+        // 20. Whale Impact
+        const whaleData = analyticsData.whale_impact;
+        createChart('whaleChart', {
+            type: 'doughnut',
+            data: {
+                labels: whaleData.map(d => d.user_group),
+                datasets: [{
+                    label: 'Total Balance',
+                    data: whaleData.map(d => d.total_group_balance),
+                    backgroundColor: ['#ffcd56', '#36a2eb']
+                }]
+            }
+        });
+
+        // 15. Slot Time
+        const slotTimeData = analyticsData.avg_time_per_slot.slice(0, 10);
+        createChart('slotTimeChart', {
+            type: 'bar',
+            data: {
+                labels: slotTimeData.map(d => d.slot_number),
+                datasets: [{
+                    label: 'Avg Minutes Occupied',
+                    data: slotTimeData.map(d => d.average_occupied_duration_minutes),
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)'
+                }]
+            }
+        });
+    }
+</script>
+{% endblock %}

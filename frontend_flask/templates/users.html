@@ -48,7 +48,8 @@
             <th>Status</th>
             <th>Total Activities</th>
             <th>To Next Tier</th>
-            <th>Current Discount Amount</th>
+            <th>Discount %</th>
+            <th>Balance</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -68,7 +69,36 @@
             <td>{{ user.total_activities }}</td>
             <td>{{ 5 - (user.total_activities % 5) }}</td>
             <td>{{ user.discount_percentage }}%</td>
+            <td>৳{{ "%.2f"|format(user.balance|default(0.0)) }}</td>
             <td>
+                <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#topUpModal{{ user.id }}">
+                    Top Up
+                </button>
+
+                <!-- Top Up Modal -->
+                <div class="modal fade" id="topUpModal{{ user.id }}" tabindex="-1" aria-labelledby="topUpModalLabel{{ user.id }}" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <div class="modal-content">
+                      <form method="POST" action="{{ url_for('top_up_user', user_id=user.id) }}">
+                          <div class="modal-header">
+                            <h5 class="modal-title" id="topUpModalLabel{{ user.id }}">Top Up Balance for {{ user.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="amount" class="form-label">Amount to Add (৳)</label>
+                                <input type="number" class="form-control" id="amount" name="amount" min="1" step="0.01" required>
+                            </div>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Confirm Top Up</button>
+                          </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
                 {% if not user.is_active %}
                     <form method="POST" action="{{ fastapi_base_url }}/api/users/{{ user.id }}/approve" class="approve-form" style="display:inline;">
                         <button type="submit" class="btn btn-sm btn-success">Approve</button>
@@ -81,7 +111,7 @@
         </tr>
         {% else %}
         <tr>
-            <td colspan="8">No users found.</td>
+            <td colspan="9">No users found.</td>
         </tr>
         {% endfor %}
     </tbody>

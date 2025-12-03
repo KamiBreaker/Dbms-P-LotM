@@ -17,6 +17,13 @@
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <i class="fas fa-parking me-2 text-primary"></i> EasyPark
             </a>
+            {% if not g.user %}
+                <div class="text-white-50 small mb-3">
+                    <p class="mb-0">Contact Us:</p>
+                    <p class="mb-0"><i class="fas fa-envelope me-1"></i> <a href="mailto:rizuosman76@gmail.com" class="text-primary">rizuosman76@gmail.com</a></p>
+                    <p class="mb-0"><i class="fas fa-phone me-1"></i> <a href="tel:+8801581501077" class="text-primary">+8801581501077</a></p>
+                </div>
+            {% endif %}
             {% if g.user %}
             <ul class="nav flex-column mt-4">
                 {% if g.user.role == 'admin' %}
@@ -33,6 +40,11 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('reports') }}">
                         <i class="fas fa-chart-pie w-20"></i> Reports
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_analytics') }}">
+                        <i class="fas fa-chart-line w-20"></i> Analytics
                     </a>
                 </li>
                 <li class="nav-item">

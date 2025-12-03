@@ -104,12 +104,13 @@ def logout():
 
 # --- Main App Routes (Protected) ---
 @app.route('/')
-@login_required
 def index():
-    if g.user and g.user.get('role') == 'admin':
-        return redirect(url_for('admin_dashboard'))
-    else:
-        return redirect(url_for('user_dashboard'))
+    if g.user:
+        if g.user.get('role') == 'admin':
+            return redirect(url_for('admin_dashboard'))
+        else:
+            return redirect(url_for('user_dashboard'))
+    return render_template('welcome.html')
 
 @app.route('/dashboard')
 @login_required
@@ -641,6 +642,115 @@ def users_management():
     users = response.json() if response.ok else []
     return render_template('users.html', users=users, name_filter=name_filter, fastapi_base_url=FASTAPI_BASE_URL)
 
+@app.route('/users/<int:user_id>/top-up', methods=['POST'])
+@login_required
+def top_up_user(user_id):
+    if g.user.get('role') != 'admin':
+         flash("Access denied.", "danger")
+         return redirect(url_for('index'))
+    
+    amount = request.form.get('amount')
+    if not amount:
+         flash("Amount is required.", "danger")
+         return redirect(url_for('users_management'))
+    
+    try:
+        amount = float(amount)
+    except ValueError:
+         flash("Invalid amount.", "danger")
+         return redirect(url_for('users_management'))
+
+    headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    payload = {"amount": amount}
+    
+    response = requests.post(f"{FASTAPI_BASE_URL}/api/admin/users/{user_id}/top-up", json=payload, headers=headers)
+    
+    if response.ok:
+        flash(f"Successfully topped up user.", "success")
+    else:
+        flash(f"Error topping up user: {response.json().get('detail', 'Unknown error')}", "danger")
+        
+    return redirect(url_for('users_management'))
+
+@app.route('/top-up/request', methods=['POST'])
+@login_required
+def request_top_up():
+    amount = request.form.get('amount')
+    payment_method = request.form.get('payment_method')
+
+    if not amount or not payment_method:
+         flash("Amount and Payment Method are required.", "danger")
+         return redirect(url_for('user_dashboard'))
+    
+    try:
+        amount = float(amount)
+    except ValueError:
+         flash("Invalid amount.", "danger")
+         return redirect(url_for('user_dashboard'))
+
+    headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    payload = {"amount": amount, "payment_method": payment_method}
+    
+    response = requests.post(f"{FASTAPI_BASE_URL}/api/top-up/request", json=payload, headers=headers)
+    
+    if response.ok:
+        flash("Top-up request submitted successfully! Please wait for admin approval.", "success")
+    else:
+        flash(f"Error submitting request: {response.json().get('detail', 'Unknown error')}", "danger")
+        
+    return redirect(url_for('user_dashboard'))
+
+@app.route('/top-up/history')
+@login_required
+def user_top_up_history():
+    headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    response = requests.get(f"{FASTAPI_BASE_URL}/api/users/me/top-up-history", headers=headers)
+    
+    history = []
+    if response.ok:
+        history = response.json()
+    else:
+        flash("Could not retrieve transaction history.", "danger")
+        
+    return render_template('user_top_up_history.html', history=history)
+
+@app.route('/admin/top-up-requests')
+@login_required
+def admin_top_up_requests():
+    if g.user.get('role') != 'admin':
+        flash("Access denied.", "danger")
+        return redirect(url_for('index'))
+        
+    status_filter = request.args.get('status')
+    headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    params = {'status': status_filter} if status_filter else {}
+    
+    response = requests.get(f"{FASTAPI_BASE_URL}/api/admin/top-up-requests", params=params, headers=headers)
+    requests_list = response.json() if response.ok else []
+    
+    return render_template('admin_top_up_requests.html', requests=requests_list, status=status_filter)
+
+@app.route('/admin/top-up-requests/<int:request_id>/<action>', methods=['POST'])
+@login_required
+def process_top_up_request(request_id, action):
+    if g.user.get('role') != 'admin':
+        flash("Access denied.", "danger")
+        return redirect(url_for('index'))
+    
+    if action not in ['approve', 'reject']:
+        flash("Invalid action.", "danger")
+        return redirect(url_for('admin_top_up_requests'))
+        
+    headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    response = requests.post(f"{FASTAPI_BASE_URL}/api/admin/top-up-requests/{request_id}/{action}", headers=headers)
+    
+    if response.ok:
+        flash(f"Request {action}d successfully.", "success")
+    else:
+        flash(f"Error processing request: {response.json().get('detail', 'Unknown error')}", "danger")
+        
+    return redirect(url_for('admin_top_up_requests'))
+
 # --- New Check-Out Page ---
 @app.route('/check-out', methods=['GET', 'POST'])
 @login_required
@@ -729,6 +839,24 @@ def reports():
                            peak_hours=peak_hours, 
                            popular_spots=popular_spots, 
                            top_users=top_users)
+
+@app.route('/admin/analytics')
+@login_required
+def admin_analytics():
+    if g.user.get('role') != 'admin':
+        flash("Access denied.", "danger")
+        return redirect(url_for('index'))
+        
+    headers = {'Authorization': f'Bearer {session["access_token"]}'}
+    response = requests.get(f"{FASTAPI_BASE_URL}/api/analytics/all", headers=headers)
+    
+    data = {}
+    if response.ok:
+        data = response.json()
+    else:
+        flash("Could not retrieve analytics data.", "danger")
+        
+    return render_template('analytics.html', data=data)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

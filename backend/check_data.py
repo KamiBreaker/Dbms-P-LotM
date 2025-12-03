@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.join(os.getcwd(), 'backend'))
-from main import ParkingLot, DATABASE_URL
+from p import ParkingLot, DATABASE_URL
 
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)

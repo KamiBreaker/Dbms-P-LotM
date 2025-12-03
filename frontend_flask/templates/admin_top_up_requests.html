@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Top-Up Requests</h1>
+
+<div class="mb-4">
+    <div class="btn-group" role="group">
+        <a href="{{ url_for('admin_top_up_requests') }}" class="btn btn-outline-primary {% if not status %}active{% endif %}">All</a>
+        <a href="{{ url_for('admin_top_up_requests', status='pending') }}" class="btn btn-outline-primary {% if status == 'pending' %}active{% endif %}">Pending</a>
+        <a href="{{ url_for('admin_top_up_requests', status='approved') }}" class="btn btn-outline-primary {% if status == 'approved' %}active{% endif %}">Approved</a>
+        <a href="{{ url_for('admin_top_up_requests', status='rejected') }}" class="btn btn-outline-primary {% if status == 'rejected' %}active{% endif %}">Rejected</a>
+    </div>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Amount</th>
+            <th>Method</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for req in requests %}
+        <tr>
+            <td>{{ req.id }}</td>
+            <td>{{ req.user_name }} (ID: {{ req.user_id }})</td>
+            <td>৳{{ "%.2f"|format(req.amount) }}</td>
+            <td>{{ req.payment_method|upper }}</td>
+            <td>
+                {% if req.status == 'pending' %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                {% elif req.status == 'approved' %}
+                    <span class="badge bg-success">Approved</span>
+                {% else %}
+                    <span class="badge bg-danger">Rejected</span>
+                {% endif %}
+            </td>
+            <td>{{ req.created_at.split('T')[0] }} {{ req.created_at.split('T')[1][:5] }}</td>
+            <td>
+                {% if req.status == 'pending' %}
+                    <form action="{{ url_for('process_top_up_request', request_id=req.id, action='approve') }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Approve this top-up?');">Approve</button>
+                    </form>
+                    <form action="{{ url_for('process_top_up_request', request_id=req.id, action='reject') }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Reject this top-up?');">Reject</button>
+                    </form>
+                {% else %}
+                    <span class="text-muted">-</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="7">No top-up requests found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
+{% endblock %}

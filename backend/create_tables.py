@@ -1,4 +1,4 @@
-from main import Base, engine, SessionLocal, User, pwd_context
+from p import Base, engine, SessionLocal, User, pwd_context
 
 print("Connecting to the database...")
 
