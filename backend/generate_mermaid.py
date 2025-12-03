@@ -6,11 +6,11 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 try:
-    from p import Base, User, Vehicle, ParkingLot, ParkingSlot, ParkingSession, Reservation, Feedback
+    from main import Base, User, Vehicle, ParkingLot, ParkingSlot, ParkingSession, Reservation, Feedback
 except ImportError:
     # Fallback if running from root
     sys.path.append(os.path.join(os.getcwd(), 'backend'))
-    from p import Base, User, Vehicle, ParkingLot, ParkingSlot, ParkingSession, Reservation, Feedback
+    from main import Base, User, Vehicle, ParkingLot, ParkingSlot, ParkingSession, Reservation, Feedback
 
 def generate_mermaid():
     print("erDiagram")

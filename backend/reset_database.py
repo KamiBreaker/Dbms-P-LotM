@@ -1,5 +1,5 @@
 
-from p import Base, engine
+from main import Base, engine
 
 print("--- Starting Database Reset ---")
 try:

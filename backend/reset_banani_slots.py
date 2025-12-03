@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from p import Base, ParkingLot, ParkingSlot, ParkingSession, Reservation, Penalty, User, Vehicle
+from main import Base, ParkingLot, ParkingSlot, ParkingSession, Reservation, Penalty, User, Vehicle
 
 print("--- Starting Banani Slots Reset ---")
 

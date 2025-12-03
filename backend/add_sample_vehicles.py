@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from p import Base, User, Vehicle # Import your models
+from main import Base, User, Vehicle # Import your models
 
 print("--- Starting Sample Vehicle Addition ---")
 

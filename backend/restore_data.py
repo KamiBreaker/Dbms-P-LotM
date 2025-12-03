@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from p import User, Vehicle, ParkingSession, ParkingLot, ParkingSlot, Reservation, Base, get_password_hash
+from main import User, Vehicle, ParkingSession, ParkingLot, ParkingSlot, Reservation, Base, get_password_hash
 
 print("--- Starting Data Restoration ---")
 
